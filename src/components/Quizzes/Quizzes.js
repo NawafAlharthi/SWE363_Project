@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '../common/Navbar';
 import * as S from './Quizzes.styles';
 
-//Temp data for prototype
+// Temporary Data Storage
 const QUIZZES = [
   {
     id: 1,
@@ -59,7 +59,33 @@ const STATS = {
 };
 
 const Quizzes = () => {
-  const filteredQuizzes = QUIZZES;
+  const [filters, setFilters] = useState({
+    subject: '',
+    difficulty: ''
+  });
+
+  const handleFilterChange = (e) => {
+    setFilters({
+      ...filters,
+      [e.target.name]: e.target.value
+    });
+  };
+
+  const filteredQuizzes = QUIZZES.filter(quiz => {
+    return (
+      (!filters.subject || quiz.subject === filters.subject) &&
+      (!filters.difficulty || quiz.difficulty === filters.difficulty)
+    );
+  });
+
+  const handleQuizAction = (action, quizId) => {
+    // Temporary demo for Phase 2
+    if (action === 'Start') {
+      alert(`DEMO: Would navigate to quiz ${quizId} page`);
+    } else {
+      alert(`DEMO: Would show preview for quiz ${quizId}`);
+    }
+  };
 
   return (
     <>
@@ -83,7 +109,11 @@ const Quizzes = () => {
           <S.SelectionForm>
             <S.SelectionGroup>
               <S.SelectionLabel>Subject</S.SelectionLabel>
-              <S.SelectionDropdown name="subject" defaultValue="">
+              <S.SelectionDropdown
+                name="subject"
+                value={filters.subject}
+                onChange={handleFilterChange}
+              >
                 <option value="">All Subjects</option>
                 <option value="math">Mathematics</option>
                 <option value="biology">Biology</option>
@@ -93,7 +123,11 @@ const Quizzes = () => {
 
             <S.SelectionGroup>
               <S.SelectionLabel>Difficulty</S.SelectionLabel>
-              <S.SelectionDropdown name="difficulty" defaultValue="">
+              <S.SelectionDropdown
+                name="difficulty"
+                value={filters.difficulty}
+                onChange={handleFilterChange}
+              >
                 <option value="">All Difficulties</option>
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
@@ -111,8 +145,12 @@ const Quizzes = () => {
               <S.QuizTitle>{quiz.title}</S.QuizTitle>
               <S.QuizDescription>{quiz.description}</S.QuizDescription>
               <S.ButtonGroup>
-                <S.Button>Start</S.Button>
-                <S.Button secondary>Preview</S.Button>
+                <S.Button onClick={() => handleQuizAction('Start', quiz.id)}>
+                  Start
+                </S.Button>
+                <S.Button secondary onClick={() => handleQuizAction('Preview', quiz.id)}>
+                  Preview
+                </S.Button>
               </S.ButtonGroup>
             </S.QuizCard>
           ))}
@@ -131,8 +169,12 @@ const Quizzes = () => {
                 </S.QuizHistoryMeta>
               </S.QuizHistoryContent>
               <S.QuizHistoryActions>
-                <S.Button secondary>Retry</S.Button>
-                <S.Button>Review</S.Button>
+                <S.Button secondary onClick={() => handleQuizAction('Retry', quiz.id)}>
+                  Retry
+                </S.Button>
+                <S.Button onClick={() => handleQuizAction('Review', quiz.id)}>
+                  Review
+                </S.Button>
               </S.QuizHistoryActions>
             </S.QuizHistoryItem>
           ))}
@@ -172,7 +214,9 @@ const Quizzes = () => {
               </S.RecommendedMeta>
             </S.RecommendedContent>
             <S.RecommendedAction>
-              <S.Button>Start</S.Button>
+              <S.Button onClick={() => handleQuizAction('Start Recommended', 4)}>
+                Start
+              </S.Button>
             </S.RecommendedAction>
           </S.RecommendedQuiz>
         </S.RecommendedSection>

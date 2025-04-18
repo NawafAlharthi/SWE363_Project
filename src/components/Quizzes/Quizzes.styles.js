@@ -166,3 +166,149 @@ export const QuizHistoryItem = styled.div`
   background-color: #f8f9ff;
   margin-bottom: 1rem;
 `;
+
+export const QuizHistoryIcon = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #e6e6ff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  color: #6c5ce7;
+  font-size: 1.2rem;
+`;
+
+export const QuizHistoryContent = styled.div`
+  flex: 1;
+`;
+
+export const QuizHistoryTitle = styled.h4`
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #333;
+`;
+
+export const QuizHistoryMeta = styled.div`
+  display: flex;
+  font-size: 0.8rem;
+  color: #666;
+`;
+
+export const QuizHistoryDate = styled.span`
+  margin-right: 1rem;
+`;
+
+export const QuizHistoryScore = styled.span`
+  font-weight: 500;
+`;
+
+export const QuizHistoryActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
+export const StatisticsSection = styled.div`
+  margin-bottom: 3rem;
+`;
+
+export const StatisticsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+`;
+
+export const StatCard = styled.div`
+  background-color: #f8f9ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+`;
+
+export const StatIcon = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background-color: #e6e6ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #6c5ce7;
+  font-size: 1.5rem;
+`;
+
+export const StatValue = styled.div`
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: #333;
+`;
+
+export const StatLabel = styled.div`
+  font-size: 0.9rem;
+  color: #666;
+`;
+
+export const RecommendedSection = styled.div`
+  margin-bottom: 3rem;
+`;
+
+export const RecommendedQuiz = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  border-radius: 8px;
+  background-color: #f8f9ff;
+  margin-bottom: 1rem;
+  border-left: 4px solid #6c5ce7;
+`;
+
+export const RecommendedIcon = styled.div`
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: #e6e6ff;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 1rem;
+  color: #6c5ce7;
+  font-size: 1.2rem;
+`;
+
+export const RecommendedContent = styled.div`
+  flex: 1;
+`;
+
+export const RecommendedTitle = styled.h4`
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #333;
+`;
+
+export const RecommendedMeta = styled.div`
+  display: flex;
+  font-size: 0.8rem;
+  color: #666;
+`;
+
+export const RecommendedDifficulty = styled.span`
+  margin-right: 1rem;
+`;
+
+export const RecommendedQuestions = styled.span`
+  font-weight: 500;
+`;
+
+export const RecommendedTime = styled.span`
+  margin-left: 1rem;
+  font-style: italic;
+`;
+
+export const RecommendedAction = styled.div`
+  display: flex;
+`;
