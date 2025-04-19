@@ -124,7 +124,14 @@ const AskButton = styled.button`
 
 const ConversationSection = styled.div`
   margin-top: 3rem;
+  max-height: 500px; /* Set how tall you want it */
+  overflow-y: auto;
+  padding-right: 10px; /* optional: make scroll bar inside */
+  border: 1px solid #ddd; /* optional: give it a nice border */
+  border-radius: 8px; /* optional: make it rounded */
+  background-color: #f9f9f9; /* optional: light background */
 `;
+
 
 const ConversationTitle = styled.h2`
   font-size: 1.4rem;
@@ -292,19 +299,78 @@ const TopicDescription = styled.p`
   margin-bottom: 1rem;
 `;
 
+const topicsData = {
+  popular: [
+    { icon: "∑", title: "Calculus Basics", description: "Derivatives, integrals, and their applications" },
+    { icon: "⚗️", title: "Periodic Table", description: "Elements, properties, and chemical reactions" },
+    { icon: "🧬", title: "Cell Biology", description: "Structure, function, and cellular processes" },
+  ],
+  math: [
+    { icon: "➗", title: "Algebra", description: "Equations, inequalities, and graphs" },
+    { icon: "📐", title: "Geometry", description: "Shapes, angles, and proofs" },
+    { icon: "📊", title: "Statistics", description: "Data analysis and probability" },
+  ],
+  science: [
+    { icon: "🌌", title: "Astronomy", description: "Stars, planets, and the universe" },
+    { icon: "🧪", title: "Chemistry Basics", description: "Atoms, molecules, and reactions" },
+    { icon: "🌱", title: "Botany", description: "Plants and their biology" },
+  ],
+  history: [
+    { icon: "🏰", title: "Medieval History", description: "Castles, knights, and kingdoms" },
+    { icon: "📜", title: "Ancient Civilizations", description: "Egyptians, Greeks, and Romans" },
+    { icon: "⚔️", title: "World Wars", description: "Major battles and global impacts" },
+  ],
+  literature: [
+    { icon: "📖", title: "Classic Novels", description: "Famous works of literature" },
+    { icon: "✒️", title: "Poetry", description: "Verses, sonnets, and free verse" },
+    { icon: "🎭", title: "Drama", description: "Plays and theatrical works" },
+  ],
+};
+
 const AIQnA = () => {
   const [activeTab, setActiveTab] = useState('popular');
   const [helpfulFeedback, setHelpfulFeedback] = useState(false);
   const [notHelpfulFeedback, setNotHelpfulFeedback] = useState(false);
 
+  const [question, setQuestion] = useState(""); 
+  const [message, setMessage] = useState("");   
+  const [askedQuestion, setAskedQuestion] = useState(""); 
+  const [showFeedbackThanks, setShowFeedbackThanks] = useState(false); 
+  const [showFollowUpInput, setShowFollowUpInput] = useState(false);
+  const [followUpQuestion, setFollowUpQuestion] = useState("");
+  const [followUps, setFollowUps] = useState([]);
+
+
+
   const handleHelpfulClick = () => {
-    setHelpfulFeedback(!helpfulFeedback);
+    setHelpfulFeedback(true);
     setNotHelpfulFeedback(false);
+    triggerFeedbackThanks();
   };
 
   const handleNotHelpfulClick = () => {
-    setNotHelpfulFeedback(!notHelpfulFeedback);
+    setNotHelpfulFeedback(true);
     setHelpfulFeedback(false);
+    triggerFeedbackThanks();
+  };
+
+  const triggerFeedbackThanks = () => {
+    setShowFeedbackThanks(true);
+    setTimeout(() => {
+      setShowFeedbackThanks(false);
+    }, 2000); // show for 2 seconds
+  };
+
+  const handleAskQuestion = () => {
+    if (question.trim() === "") {
+      setMessage("❗ You didn't write anything!");
+    } else {
+      setAskedQuestion(question); // save the question
+      setMessage(""); // clear error
+      setQuestion(""); // clear textarea
+    }
+    // Remove any previous feedback thanks
+    setShowFeedbackThanks(false);
   };
 
   return (
@@ -332,8 +398,24 @@ const AIQnA = () => {
         </AIAssistantCard>
         
         <QuestionLabel>Your question</QuestionLabel>
-        <QuestionTextarea placeholder="Type your academic question here..." />
-        <AskButton>Ask Question</AskButton>
+        <QuestionTextarea 
+          placeholder="Type your academic question here..." 
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+        />
+        <AskButton onClick={handleAskQuestion}>Ask Question</AskButton>
+
+        {message && (
+          <p style={{ marginTop: '1rem', fontWeight: 'bold', color: message.includes('❗') ? 'red' : 'green' }}>
+            {message}
+          </p>
+        )}
+
+        {showFeedbackThanks && (
+          <p style={{ marginTop: '1rem', fontWeight: 'bold', color: '#6c5ce7' }}>
+            🙏 Thanks for your feedback!
+          </p>
+        )}
         
         <ConversationSection>
           <ConversationTitle>Recent Conversation</ConversationTitle>
@@ -343,23 +425,88 @@ const AIQnA = () => {
               <QuestionIcon>❓</QuestionIcon>
               <QuestionTitle>Your Question</QuestionTitle>
             </QuestionHeader>
-            
+
             <QuestionContent>
-              What is the difference between mitosis and meiosis?
+              {askedQuestion ? askedQuestion : "What is the difference between mitosis and meiosis?"}
             </QuestionContent>
-            
+
             <AnswerContent>
-              <p>Mitosis is cell division that results in two identical daughter cells with the same number of chromosomes as the parent cell, used for growth and repair. Meiosis is cell division that produces four genetically different cells with half the chromosomes, used in sexual reproduction to create gametes.</p>
-              <p>Key differences:</p>
-              <ul>
-                <li>Mitosis creates 2 cells; meiosis creates 4 cells</li>
-                <li>Mitosis produces identical cells; meiosis produces genetically diverse cells</li>
-                <li>Mitosis maintains chromosome count; meiosis halves chromosome count</li>
-                <li>Mitosis is used for growth/repair; meiosis is used for reproduction</li>
-              </ul>
+              {askedQuestion ? (
+                <p>Answer coming soon... 🚀</p>
+              ) : (
+                <>
+                  <p>
+                    Mitosis is cell division that results in two identical daughter cells with the same number of chromosomes as the parent cell, 
+                    used for growth and repair. Meiosis is cell division that produces four genetically different cells with half the chromosomes, 
+                    used in sexual reproduction to create gametes.
+                  </p>
+                  <p>Key differences:</p>
+                  <ul>
+                    <li>Mitosis creates 2 cells; meiosis creates 4 cells</li>
+                    <li>Mitosis produces identical cells; meiosis produces genetically diverse cells</li>
+                    <li>Mitosis maintains chromosome count; meiosis halves chromosome count</li>
+                    <li>Mitosis is used for growth/repair; meiosis is used for reproduction</li>
+                  </ul>
+                </>
+              )}
             </AnswerContent>
-            
-            <div style={{ display: 'flex' }}>
+
+            {/* Follow-up input box */}
+            {showFollowUpInput && (
+              <div style={{ marginTop: '1rem' }}>
+                <input 
+                  type="text" 
+                  placeholder="Type your follow-up question..." 
+                  value={followUpQuestion}
+                  onChange={(e) => setFollowUpQuestion(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    border: '1px solid #ddd',
+                    marginBottom: '0.5rem',
+                  }}
+                />
+                <button 
+                  onClick={() => {
+                    if (followUpQuestion.trim() !== "") {
+                      setFollowUps(prev => [...prev, followUpQuestion]);
+                      setFollowUpQuestion("");
+                      setShowFollowUpInput(false);
+                    }
+                  }}
+                  style={{
+                    backgroundColor: '#6c5ce7',
+                    color: 'white',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '4px',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Submit Follow-up
+                </button>
+              </div>
+            )}
+
+            {/* Show all submitted follow-up questions */}
+            {followUps.map((followUp, index) => (
+              <div
+                key={index}
+                style={{
+                  backgroundColor: '#f8f9ff',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  padding: '1rem',
+                  marginTop: '1rem',
+                }}
+              >
+                <p><strong>Follow-up Question {index + 1}:</strong> {followUp}</p>
+                <p>Answer coming soon... 🚀</p>
+              </div>
+            ))}
+
+            <div style={{ display: 'flex', marginTop: '1rem' }}>
               <FeedbackButtons>
                 <FeedbackButton 
                   active={helpfulFeedback} 
@@ -374,12 +521,14 @@ const AIQnA = () => {
                   Not Helpful
                 </FeedbackButton>
               </FeedbackButtons>
-              
-              <FollowUpButton>Ask Follow-up</FollowUpButton>
+
+              <FollowUpButton onClick={() => setShowFollowUpInput(true)}>
+                Ask Follow-up
+              </FollowUpButton>
             </div>
           </ConversationCard>
         </ConversationSection>
-        
+
         <TopicsSection>
           <TopicsTitle>Suggested Topics</TopicsTitle>
           
@@ -417,24 +566,15 @@ const AIQnA = () => {
           </TopicTabs>
           
           <TopicCardsGrid>
-            <TopicCard>
-              <TopicIcon>∑</TopicIcon>
-              <TopicTitle>Calculus Basics</TopicTitle>
-              <TopicDescription>Derivatives, integrals, and their applications</TopicDescription>
-            </TopicCard>
-            
-            <TopicCard>
-              <TopicIcon>⚗️</TopicIcon>
-              <TopicTitle>Periodic Table</TopicTitle>
-              <TopicDescription>Elements, properties, and chemical reactions</TopicDescription>
-            </TopicCard>
-            
-            <TopicCard>
-              <TopicIcon>🧬</TopicIcon>
-              <TopicTitle>Cell Biology</TopicTitle>
-              <TopicDescription>Structure, function, and cellular processes</TopicDescription>
-            </TopicCard>
-          </TopicCardsGrid>
+  {topicsData[activeTab].map((topic, index) => (
+    <TopicCard key={index}>
+      <TopicIcon>{topic.icon}</TopicIcon>
+      <TopicTitle>{topic.title}</TopicTitle>
+      <TopicDescription>{topic.description}</TopicDescription>
+    </TopicCard>
+  ))}
+</TopicCardsGrid>
+
         </TopicsSection>
       </Container>
     </>
