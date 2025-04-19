@@ -256,7 +256,7 @@ const PomodoroTimer = () => {
   
   const [time, setTime] = useState(focusDuration * 60);
   const timerRef = useRef(null);
-  const audioRef = useRef(new Audio('/simple-notification-152054.mp3'));
+  const audioRef = useRef(new Audio(process.env.PUBLIC_URL + '/simple-notification-152054.mp3'));
   const notificationTimeoutRef = useRef(null);
 
   const playNotificationSound = () => {
