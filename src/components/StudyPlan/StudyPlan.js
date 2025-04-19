@@ -528,7 +528,6 @@ const SessionActions = styled.div`
   align-items: center;
 `;
 
-
 const StudyPlan = () => {
   // State for active tab
   const [activeTab, setActiveTab] = useState('all');
@@ -1091,28 +1090,27 @@ const StudyPlan = () => {
         </RecommendationsSection>
       </Container>
       
-            <AddSubjectModal
-        isOpen={isAddSubjectModalOpen}
-        onClose={() => setIsAddSubjectModalOpen(false)}
-        onAddSubject={handleAddSubject}
+      {/* Modals */}
+      <AddSubjectModal 
+        isOpen={isAddSubjectModalOpen} 
+        onClose={() => setIsAddSubjectModalOpen(false)} 
+        onSubmit={handleAddSubject}
+        existingSubjects={subjects}
       />
-
       
-        <EditSubjectModal
-          isOpen={isEditSubjectModalOpen}
-          onClose={() => setIsEditSubjectModalOpen(false)}
-          subject={currentSubject}
-          onEditSubject={handleEditSubject}
-        />
-
-      
-            <DeleteSubjectModal
-        isOpen={isDeleteSubjectModalOpen}
-        onClose={() => setIsDeleteSubjectModalOpen(false)}
-        subject={currentSubject}
-        onDeleteSubject={handleDeleteSubject}
+      <EditSubjectModal 
+        isOpen={isEditSubjectModalOpen} 
+        onClose={() => setIsEditSubjectModalOpen(false)} 
+        subject={currentSubject} 
+        onSubmit={handleEditSubject} 
       />
-
+      
+      <DeleteSubjectModal 
+        isOpen={isDeleteSubjectModalOpen} 
+        onClose={() => setIsDeleteSubjectModalOpen(false)} 
+        subject={currentSubject} 
+        onConfirm={handleDeleteSubject} 
+      />
       
       <WeeklyProgressModal 
         isOpen={isWeeklyProgressModalOpen} 
