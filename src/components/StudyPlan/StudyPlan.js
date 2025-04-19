@@ -529,3 +529,598 @@ const SessionActions = styled.div`
 `;
 
 
+const StudyPlan = () => {
+  // State for active tab
+  const [activeTab, setActiveTab] = useState('all');
+  
+  // State for modals
+  const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
+  const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
+  const [isDeleteSubjectModalOpen, setIsDeleteSubjectModalOpen] = useState(false);
+  const [isWeeklyProgressModalOpen, setIsWeeklyProgressModalOpen] = useState(false);
+  const [expandedProgress, setExpandedProgress] = useState(false);
+  
+  // State for expanded day sections
+  const [expandedDays, setExpandedDays] = useState({
+    Monday: true,
+    Tuesday: true,
+    Wednesday: true,
+    Thursday: true,
+    Friday: true,
+    Saturday: true,
+    Sunday: true
+  });
+  
+  // State for subject being edited or deleted
+  const [currentSubject, setCurrentSubject] = useState(null);
+  
+  // Sample data for subjects
+  const [subjects, setSubjects] = useState([
+    {
+      id: 1,
+      name: 'Mathematics',
+      icon: '∑',
+      active: true,
+      sessions: [
+        { id: 1, day: 'Monday', duration: '2', topic: 'Calculus Ch. 5-6', priority: 'High', completed: true },
+        { id: 2, day: 'Friday', duration: '1.5', topic: 'Practice Problems', priority: 'Medium', completed: false }
+      ]
+    },
+    {
+      id: 2,
+      name: 'Physics',
+      icon: '⚛️',
+      active: true,
+      sessions: [
+        { id: 3, day: 'Wednesday', duration: '2', topic: 'Mechanics', priority: 'High', completed: true }
+      ]
+    },
+    {
+      id: 3,
+      name: 'Computer Science',
+      icon: '💻',
+      active: true,
+      sessions: [
+        { id: 4, day: 'Tuesday', duration: '1.5', topic: 'Algorithms', priority: 'Medium', completed: false }
+      ]
+    },
+    {
+      id: 4,
+      name: 'Literature',
+      icon: '📚',
+      active: true,
+      sessions: [
+        { id: 5, day: 'Thursday', duration: '1', topic: 'Essay Preparation', priority: 'Medium', completed: false }
+      ]
+    }
+  ]);
+  
+  // Sample data for weekly progress
+  const [progressData, setProgressData] = useState({
+    completionPercentage: 68,
+    dailyBreakdown: [
+      { day: 'Monday', completed: 2, total: 2 },
+      { day: 'Tuesday', completed: 1, total: 2 },
+      { day: 'Wednesday', completed: 1, total: 1 },
+      { day: 'Thursday', completed: 0, total: 1 },
+      { day: 'Friday', completed: 1, total: 2 }
+    ],
+    subjectSummary: [
+      { name: 'Mathematics', completed: 2, total: 2 },
+      { name: 'Physics', completed: 1, total: 1 },
+      { name: 'Computer Science', completed: 1, total: 2 },
+      { name: 'Literature', completed: 0, total: 1 }
+    ],
+    missedSessions: [
+      { day: 'Thursday', subject: 'Literature', topic: 'Essay Preparation', duration: '1' },
+      { day: 'Friday', subject: 'Computer Science', topic: 'Data Structures', duration: '1.5' }
+    ]
+  });
+  
+  // Filtered subjects based on active tab
+  const filteredSubjects = activeTab === 'all' 
+    ? subjects 
+    : subjects.filter(subject => subject.name.toLowerCase() === activeTab);
+  
+  // Function to handle adding a new subject
+  const handleAddSubject = (newSubject) => {
+    const subjectWithId = {
+      id: Date.now(),
+      icon: getSubjectIcon(newSubject.name),
+      active: true,
+      ...newSubject
+    };
+    
+    setSubjects([...subjects, subjectWithId]);
+    
+    // Update schedule with new sessions
+    updateSchedule([...subjects, subjectWithId]);
+  };
+  
+  // Function to handle editing a subject
+  const handleEditSubject = (updatedSubject) => {
+    const updatedSubjects = subjects.map(subject => 
+      subject.id === updatedSubject.id ? { ...subject, ...updatedSubject } : subject
+    );
+    
+    setSubjects(updatedSubjects);
+    
+    // Update schedule with updated sessions
+    updateSchedule(updatedSubjects);
+  };
+  
+  // Function to handle deleting a subject
+  const handleDeleteSubject = (subjectId) => {
+    const updatedSubjects = subjects.filter(subject => subject.id !== subjectId);
+    setSubjects(updatedSubjects);
+    
+    // Update schedule with remaining subjects
+    updateSchedule(updatedSubjects);
+  };
+  
+  // Function to handle toggling subject active state
+  const handleToggleSubject = (subjectId) => {
+    const updatedSubjects = subjects.map(subject => 
+      subject.id === subjectId ? { ...subject, active: !subject.active } : subject
+    );
+    
+    setSubjects(updatedSubjects);
+    
+    // Update schedule with updated active states
+    updateSchedule(updatedSubjects);
+  };
+  
+  // Function to handle toggling session completion status
+  const handleToggleSession = (subjectId, sessionId) => {
+    const updatedSubjects = subjects.map(subject => {
+      if (subject.id === subjectId) {
+        const updatedSessions = subject.sessions.map(session => 
+          session.id === sessionId ? { ...session, completed: !session.completed } : session
+        );
+        return { ...subject, sessions: updatedSessions };
+      }
+      return subject;
+    });
+    
+    setSubjects(updatedSubjects);
+    
+    // Update schedule with updated completion status
+    updateSchedule(updatedSubjects);
+  };
+  
+  // Function to update schedule based on subjects
+  const updateSchedule = (updatedSubjects) => {
+    // Get all active subjects
+    const activeSubjects = updatedSubjects.filter(subject => subject.active);
+    
+    // Count total and completed sessions
+    const allSessions = [];
+    let completedSessions = 0;
+    
+    activeSubjects.forEach(subject => {
+      subject.sessions.forEach(session => {
+        allSessions.push({
+          ...session,
+          subject: subject.name
+        });
+        
+        if (session.completed) {
+          completedSessions++;
+        }
+      });
+    });
+    
+    const totalSessions = allSessions.length;
+    
+    // Group sessions by day for daily breakdown
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const dailyBreakdown = days.map(day => {
+      const daySessions = allSessions.filter(session => session.day === day);
+      const dayCompleted = daySessions.filter(session => session.completed).length;
+      
+      return {
+        day,
+        completed: dayCompleted,
+        total: daySessions.length
+      };
+    }).filter(day => day.total > 0); // Only include days with sessions
+    
+    // Group sessions by subject for subject summary
+    const subjectSummary = [];
+    activeSubjects.forEach(subject => {
+      const subjectSessions = subject.sessions;
+      const subjectCompleted = subjectSessions.filter(session => session.completed).length;
+      
+      subjectSummary.push({
+        name: subject.name,
+        completed: subjectCompleted,
+        total: subjectSessions.length
+      });
+    });
+    
+    // Find missed/pending sessions
+    const missedSessions = allSessions
+      .filter(session => !session.completed)
+      .map(session => ({
+        day: session.day,
+        subject: session.subject,
+        topic: session.topic,
+        duration: session.duration
+      }));
+    
+    // Update progress data
+    setProgressData({
+      completionPercentage: totalSessions > 0 ? Math.floor((completedSessions / totalSessions) * 100) : 0,
+      dailyBreakdown,
+      subjectSummary,
+      missedSessions
+    });
+  };
+  
+  // Function to get an icon for a subject based on its name
+  const getSubjectIcon = (name) => {
+    const lowerName = name.toLowerCase();
+    if (lowerName.includes('math')) return '∑';
+    if (lowerName.includes('physics')) return '⚛️';
+    if (lowerName.includes('computer') || lowerName.includes('programming')) return '💻';
+    if (lowerName.includes('literature') || lowerName.includes('english')) return '📚';
+    if (lowerName.includes('history')) return '🏛️';
+    if (lowerName.includes('chemistry')) return '🧪';
+    if (lowerName.includes('biology')) return '🧬';
+    return '📘';
+  };
+  
+  // Function to check for schedule conflicts
+  const checkForConflicts = (day, sessions) => {
+    const daySessions = sessions.filter(session => session.day === day);
+    
+    // Check for conflicts (simplified version)
+    return daySessions.length > 1;
+  };
+  
+  // Generate schedule data grouped by day
+  const generateScheduleData = () => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const scheduleData = {};
+    
+    days.forEach(day => {
+      const daySessions = [];
+      
+      // Collect all sessions for this day from active subjects
+      subjects.forEach(subject => {
+        if (subject.active) {
+          subject.sessions.forEach(session => {
+            if (session.day === day) {
+              daySessions.push({
+                ...session,
+                subject: subject.name,
+                subjectId: subject.id,
+                icon: subject.icon
+              });
+            }
+          });
+        }
+      });
+      
+      // Only add days that have sessions
+      if (daySessions.length > 0) {
+        scheduleData[day] = {
+          sessions: daySessions,
+          hasConflict: checkForConflicts(day, daySessions)
+        };
+      }
+    });
+    
+    return scheduleData;
+  };
+  
+  // Functions for day section expansion
+  const toggleDayExpanded = (day) => {
+    setExpandedDays(prev => ({
+      ...prev,
+      [day]: !prev[day]
+    }));
+  };
+  
+  const isDayExpanded = (day) => {
+    return expandedDays[day] === true;
+  };
+  
+  // Get schedule data
+  const scheduleData = generateScheduleData();
+  
+  return (
+    <>
+      <Navbar isLoggedIn={true} />
+      <Container>
+        <Breadcrumbs>
+          <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          <BreadcrumbSeparator>›</BreadcrumbSeparator>
+          <BreadcrumbLink href="/study-plan">Study Plan</BreadcrumbLink>
+        </Breadcrumbs>
+        
+        <PageTitle>Your Study Plan</PageTitle>
+        
+        <FeaturesGrid>
+          <FeatureCard>
+            <FeatureIcon>📋</FeatureIcon>
+            <FeatureTitle>Subject Selection</FeatureTitle>
+            <FeatureDescription>Choose subjects to include in your study plan</FeatureDescription>
+            <Button onClick={() => setIsAddSubjectModalOpen(true)}>Add Subject</Button>
+          </FeatureCard>
+          
+          <FeatureCard>
+            <FeatureIcon>📈</FeatureIcon>
+            <FeatureTitle>Weekly Progress</FeatureTitle>
+            <FeatureDescription>You've completed {progressData.completionPercentage}% of your planned sessions this week</FeatureDescription>
+            <Button onClick={() => setExpandedProgress(!expandedProgress)}>
+              {expandedProgress ? 'Hide Details' : 'View Details'}
+            </Button>
+          </FeatureCard>
+          
+          <FeatureCard>
+            <FeatureIcon>📊</FeatureIcon>
+            <FeatureTitle>Study Time Distribution</FeatureTitle>
+            <FeatureDescription>View how your study time is distributed across subjects</FeatureDescription>
+            <div style={{ width: '100%', height: '220px', marginTop: '10px' }}>
+              <StudyTimeDistributionChart subjects={subjects} />
+            </div>
+          </FeatureCard>
+        </FeaturesGrid>
+        
+        {/* Expandable Progress Panel */}
+        <ProgressPanel expanded={expandedProgress}>
+          <ProgressBar>
+            <ProgressFill percentage={progressData.completionPercentage} />
+          </ProgressBar>
+          
+          <ProgressGrid>
+            <ProgressCard>
+              <ProgressCardTitle>Daily Breakdown</ProgressCardTitle>
+              <ProgressList>
+                {progressData.dailyBreakdown.map((day, index) => (
+                  <ProgressListItem key={index}>
+                    <ProgressItemIcon completed={day.completed === day.total}>
+                      {day.completed === day.total ? '✅' : '⏳'}
+                    </ProgressItemIcon>
+                    <ProgressItemText>
+                      {day.day}: {day.completed}/{day.total} sessions completed
+                    </ProgressItemText>
+                  </ProgressListItem>
+                ))}
+              </ProgressList>
+            </ProgressCard>
+            
+            <ProgressCard>
+              <ProgressCardTitle>Subject Summary</ProgressCardTitle>
+              <ProgressList>
+                {progressData.subjectSummary.map((subject, index) => (
+                  <ProgressListItem key={index}>
+                    <ProgressItemIcon completed={subject.completed === subject.total}>
+                      {subject.completed === subject.total ? '✅' : '⏳'}
+                    </ProgressItemIcon>
+                    <ProgressItemText>
+                      {subject.name}: {subject.completed}/{subject.total} sessions
+                    </ProgressItemText>
+                  </ProgressListItem>
+                ))}
+              </ProgressList>
+            </ProgressCard>
+            
+            <ProgressCard>
+              <ProgressCardTitle>Missed/Pending Sessions</ProgressCardTitle>
+              <ProgressList>
+                {progressData.missedSessions.map((session, index) => (
+                  <ProgressListItem key={index}>
+                    <ProgressItemIcon completed={false}>⏳</ProgressItemIcon>
+                    <ProgressItemText>
+                      {session.day}'s {session.subject} - {session.topic}
+                    </ProgressItemText>
+                  </ProgressListItem>
+                ))}
+              </ProgressList>
+            </ProgressCard>
+          </ProgressGrid>
+        </ProgressPanel>
+        
+        <SectionTitle>Active Subjects</SectionTitle>
+        
+        <SubjectTabs>
+          <SubjectTab 
+            active={activeTab === 'all'} 
+            onClick={() => setActiveTab('all')}
+          >
+            All Subjects
+          </SubjectTab>
+          {subjects.map(subject => (
+            <SubjectTab 
+              key={subject.id}
+              active={activeTab === subject.name.toLowerCase()} 
+              onClick={() => setActiveTab(subject.name.toLowerCase())}
+            >
+              {subject.name}
+            </SubjectTab>
+          ))}
+        </SubjectTabs>
+        
+        {filteredSubjects.map(subject => (
+          <div key={subject.id}>
+            <SubjectCard inactive={!subject.active}>
+              <SubjectIcon>{subject.icon}</SubjectIcon>
+              <SubjectContent>
+                <SubjectTitle>{subject.name}</SubjectTitle>
+                <SubjectSessions>
+                  {subject.sessions.length} session{subject.sessions.length !== 1 ? 's' : ''} scheduled this week
+                </SubjectSessions>
+              </SubjectContent>
+              <SubjectActions>
+                <ActionButton 
+                  onClick={() => {
+                    setCurrentSubject(subject);
+                    setIsEditSubjectModalOpen(true);
+                  }}
+                  title="Edit Subject"
+                >
+                  ✏️
+                </ActionButton>
+                <ActionButton 
+                  onClick={() => {
+                    setCurrentSubject(subject);
+                    setIsDeleteSubjectModalOpen(true);
+                  }}
+                  title="Delete Subject"
+                >
+                  🗑️
+                </ActionButton>
+                <Tooltip>
+                  <ToggleSwitch>
+                    <input 
+                      type="checkbox" 
+                      checked={subject.active} 
+                      onChange={() => handleToggleSubject(subject.id)} 
+                    />
+                    <Slider />
+                  </ToggleSwitch>
+                  <TooltipText className="tooltiptext">
+                    Toggle to {subject.active ? 'exclude' : 'include'} this subject from your schedule
+                  </TooltipText>
+                </Tooltip>
+              </SubjectActions>
+            </SubjectCard>
+            
+            {/* Show individual sessions when a specific subject is selected */}
+            {activeTab !== 'all' && subject.sessions.map(session => (
+              <SessionCard key={session.id}>
+                <SessionContent>
+                  <SessionDay>{session.day}</SessionDay>
+                  <SessionDetails>
+                    <SessionTopic>{session.topic}</SessionTopic>
+                    <SessionInfo>
+                      {session.duration} hours • {session.priority} Priority
+                    </SessionInfo>
+                  </SessionDetails>
+                </SessionContent>
+                <SessionActions>
+                  <Tooltip>
+                    <ToggleSwitch>
+                      <input 
+                        type="checkbox" 
+                        checked={session.completed} 
+                        onChange={() => handleToggleSession(subject.id, session.id)} 
+                      />
+                      <Slider />
+                    </ToggleSwitch>
+                    <TooltipText className="tooltiptext">
+                      Mark as {session.completed ? 'incomplete' : 'completed'}
+                    </TooltipText>
+                  </Tooltip>
+                </SessionActions>
+              </SessionCard>
+            ))}
+          </div>
+        ))}
+        
+        <ScheduleSection>
+          <ScheduleHeader>
+            <SectionTitle>Weekly Study Schedule</SectionTitle>
+          </ScheduleHeader>
+          
+          <ScheduleTable>
+            {Object.entries(scheduleData).map(([day, data]) => (
+              <DaySection key={day}>
+                <DaySectionHeader onClick={() => toggleDayExpanded(day)}>
+                  <DaySectionTitle>
+                    {isDayExpanded(day) ? '▼' : '►'} {day} ({data.sessions.length} sessions)
+                    {data.hasConflict && <ConflictWarning>⚠️ Conflict</ConflictWarning>}
+                  </DaySectionTitle>
+                </DaySectionHeader>
+                
+                {isDayExpanded(day) && (
+                  <DaySectionContent>
+                    {data.sessions.map((session) => (
+                      <SessionRow key={session.id}>
+                        <SessionCheckbox 
+                          type="checkbox" 
+                          checked={session.completed}
+                          onChange={() => handleToggleSession(session.subjectId, session.id)}
+                        />
+                        <SessionSubject>
+                          {session.subject} | {session.duration}h | {session.topic} | 
+                          <PriorityIndicator priority={session.priority}>
+                            {session.priority === 'High' ? '🔴' : 
+                             session.priority === 'Medium' ? '🟡' : '🟢'} {session.priority}
+                          </PriorityIndicator>
+                        </SessionSubject>
+                      </SessionRow>
+                    ))}
+                  </DaySectionContent>
+                )}
+              </DaySection>
+            ))}
+            
+            {Object.keys(scheduleData).length === 0 && (
+              <EmptySchedule>
+                No sessions scheduled. Add subjects and sessions to see your schedule.
+              </EmptySchedule>
+            )}
+          </ScheduleTable>
+        </ScheduleSection>
+        
+        <RecommendationsSection>
+          <SectionTitle>AI Study Recommendations</SectionTitle>
+          
+          <RecommendationCard>
+            <RecommendationIcon>🔄</RecommendationIcon>
+            <RecommendationContent>
+              <RecommendationTitle>Spaced Repetition</RecommendationTitle>
+              <RecommendationDescription>
+                Based on your learning patterns, we recommend reviewing calculus concepts every 3 days to improve retention.
+              </RecommendationDescription>
+            </RecommendationContent>
+          </RecommendationCard>
+          
+          <RecommendationCard>
+            <RecommendationIcon>⏱️</RecommendationIcon>
+            <RecommendationContent>
+              <RecommendationTitle>Focus Time</RecommendationTitle>
+              <RecommendationDescription>
+                Your productivity peaks in the morning. Consider scheduling difficult subjects like Physics before noon.
+              </RecommendationDescription>
+            </RecommendationContent>
+          </RecommendationCard>
+        </RecommendationsSection>
+      </Container>
+      
+      {/* Modals */}
+      <AddSubjectModal 
+        isOpen={isAddSubjectModalOpen} 
+        onClose={() => setIsAddSubjectModalOpen(false)} 
+        onSubmit={handleAddSubject}
+        existingSubjects={subjects}
+      />
+      
+      <EditSubjectModal 
+        isOpen={isEditSubjectModalOpen} 
+        onClose={() => setIsEditSubjectModalOpen(false)} 
+        subject={currentSubject} 
+        onSubmit={handleEditSubject} 
+      />
+      
+      <DeleteSubjectModal 
+        isOpen={isDeleteSubjectModalOpen} 
+        onClose={() => setIsDeleteSubjectModalOpen(false)} 
+        subject={currentSubject} 
+        onConfirm={handleDeleteSubject} 
+      />
+      
+      <WeeklyProgressModal 
+        isOpen={isWeeklyProgressModalOpen} 
+        onClose={() => setIsWeeklyProgressModalOpen(false)} 
+        progressData={progressData} 
+      />
+    </>
+  );
+};
+
+export default StudyPlan;
+
