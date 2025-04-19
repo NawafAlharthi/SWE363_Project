@@ -1091,27 +1091,28 @@ const StudyPlan = () => {
         </RecommendationsSection>
       </Container>
       
-      {/* Modals */}
-      <AddSubjectModal 
-        isOpen={isAddSubjectModalOpen} 
-        onClose={() => setIsAddSubjectModalOpen(false)} 
-        onSubmit={handleAddSubject}
-        existingSubjects={subjects}
+            <AddSubjectModal
+        isOpen={isAddSubjectModalOpen}
+        onClose={() => setIsAddSubjectModalOpen(false)}
+        onAddSubject={handleAddSubject}
       />
+
       
-      <EditSubjectModal 
-        isOpen={isEditSubjectModalOpen} 
-        onClose={() => setIsEditSubjectModalOpen(false)} 
-        subject={currentSubject} 
-        onSubmit={handleEditSubject} 
-      />
+        <EditSubjectModal
+          isOpen={isEditSubjectModalOpen}
+          onClose={() => setIsEditSubjectModalOpen(false)}
+          subject={currentSubject}
+          onEditSubject={handleEditSubject}
+        />
+
       
-      <DeleteSubjectModal 
-        isOpen={isDeleteSubjectModalOpen} 
-        onClose={() => setIsDeleteSubjectModalOpen(false)} 
-        subject={currentSubject} 
-        onConfirm={handleDeleteSubject} 
+            <DeleteSubjectModal
+        isOpen={isDeleteSubjectModalOpen}
+        onClose={() => setIsDeleteSubjectModalOpen(false)}
+        subject={currentSubject}
+        onDeleteSubject={handleDeleteSubject}
       />
+
       
       <WeeklyProgressModal 
         isOpen={isWeeklyProgressModalOpen} 

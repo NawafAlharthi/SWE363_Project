@@ -1,6 +1,8 @@
-import React from 'react';
+// Dashboard.js
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
+import TaskModal from './TaskModal';
 
 const DashboardContainer = styled.div`
   font-family: 'Inter', sans-serif;
@@ -233,6 +235,46 @@ const ViewDetailsButton = styled.button`
 `;
 
 const Dashboard = () => {
+  // State for tasks
+  const [tasks, setTasks] = useState([
+    {
+      id: 1,
+      title: 'Complete Physics Problem Set',
+      dueDate: 'Due today at 5:00 PM',
+      icon: '📝',
+      completed: false
+    },
+    {
+      id: 2,
+      title: 'Review Biology Notes',
+      dueDate: 'Due tomorrow at 9:00 AM',
+      icon: '📚',
+      completed: false
+    },
+    {
+      id: 3,
+      title: 'Prepare for History Presentation',
+      dueDate: 'Due in 3 days',
+      icon: '🎭',
+      completed: false
+    }
+  ]);
+  
+  // State for task modal
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  
+  // Function to add a new task
+  const handleAddTask = (newTask) => {
+    setTasks([...tasks, newTask]);
+  };
+  
+  // Function to toggle task completion
+  const handleToggleTask = (taskId) => {
+    setTasks(tasks.map(task => 
+      task.id === taskId ? { ...task, completed: !task.completed } : task
+    ));
+  };
+  
   return (
     <>
       <Navbar isLoggedIn={true} />
@@ -270,44 +312,36 @@ const Dashboard = () => {
               <TasksDescription>Manage your study tasks and track completion</TasksDescription>
             </div>
             <ButtonGroup>
-              <AddTaskButton>Add Task</AddTaskButton>
+              <AddTaskButton onClick={() => setIsTaskModalOpen(true)}>Add Task</AddTaskButton>
               <ViewAllButton>View All</ViewAllButton>
             </ButtonGroup>
           </TasksHeader>
           
           <TasksList>
-            <TaskItem>
-              <TaskIcon>📝</TaskIcon>
-              <TaskContent>
-                <TaskTitle>Complete Physics Problem Set</TaskTitle>
-                <TaskDueDate>Due today at 5:00 PM</TaskDueDate>
-              </TaskContent>
-              <TaskToggle>
-                <input type="checkbox" />
-              </TaskToggle>
-            </TaskItem>
+            {tasks.map(task => (
+              <TaskItem key={task.id} style={{ opacity: task.completed ? 0.6 : 1 }}>
+                <TaskIcon>{task.icon}</TaskIcon>
+                <TaskContent>
+                  <TaskTitle style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
+                    {task.title}
+                  </TaskTitle>
+                  <TaskDueDate>{task.dueDate}</TaskDueDate>
+                </TaskContent>
+                <TaskToggle>
+                  <input 
+                    type="checkbox" 
+                    checked={task.completed}
+                    onChange={() => handleToggleTask(task.id)}
+                  />
+                </TaskToggle>
+              </TaskItem>
+            ))}
             
-            <TaskItem>
-              <TaskIcon>📚</TaskIcon>
-              <TaskContent>
-                <TaskTitle>Review Biology Notes</TaskTitle>
-                <TaskDueDate>Due tomorrow at 9:00 AM</TaskDueDate>
-              </TaskContent>
-              <TaskToggle>
-                <input type="checkbox" />
-              </TaskToggle>
-            </TaskItem>
-            
-            <TaskItem>
-              <TaskIcon>🎭</TaskIcon>
-              <TaskContent>
-                <TaskTitle>Prepare for History Presentation</TaskTitle>
-                <TaskDueDate>Due in 3 days</TaskDueDate>
-              </TaskContent>
-              <TaskToggle>
-                <input type="checkbox" />
-              </TaskToggle>
-            </TaskItem>
+            {tasks.length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                No tasks yet. Click "Add Task" to create your first task.
+              </div>
+            )}
           </TasksList>
         </TasksContainer>
         
@@ -334,6 +368,13 @@ const Dashboard = () => {
             <ViewDetailsButton>View Details</ViewDetailsButton>
           </ProgressCard>
         </ProgressGrid>
+        
+        {/* Task Modal */}
+        <TaskModal 
+          isOpen={isTaskModalOpen}
+          onClose={() => setIsTaskModalOpen(false)}
+          onAddTask={handleAddTask}
+        />
       </DashboardContainer>
     </>
   );
