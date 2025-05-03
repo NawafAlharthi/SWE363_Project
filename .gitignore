@@ -30,3 +30,6 @@ yarn-error.log*
 .cache/
 *.cache
 .npm
+
+node_modules/
+.cache/
