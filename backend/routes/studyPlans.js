@@ -117,4 +117,44 @@ router.patch('/:subjectId/topics/:topicId/toggle', async (req, res) => {
   }
 });
 
+// Add a topic to a subject
+router.post('/:subjectId/topics', async (req, res) => {
+  try {
+    const { topic } = req.body;
+    if (!topic || !topic.name) {
+      return res.status(400).json({ error: 'Invalid topic data' });
+    }
+    const studyPlan = await StudyPlan.findOne();
+    if (!studyPlan) return res.status(404).json({ error: 'Study plan not found' });
+    const subject = studyPlan.subjects.id(req.params.subjectId);
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+    subject.topics.push(topic);
+    subject.totalAllocatedTime = subject.topics.reduce((sum, t) => sum + Number(t.allocatedTime || 0), 0);
+    await studyPlan.save();
+    res.json(subject);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// Delete a topic from a subject by index
+router.delete('/:subjectId/topics/:topicIndex', async (req, res) => {
+  try {
+    const studyPlan = await StudyPlan.findOne();
+    if (!studyPlan) return res.status(404).json({ error: 'Study plan not found' });
+    const subject = studyPlan.subjects.id(req.params.subjectId);
+    if (!subject) return res.status(404).json({ error: 'Subject not found' });
+    const topicIndex = parseInt(req.params.topicIndex, 10);
+    if (isNaN(topicIndex) || topicIndex < 0 || topicIndex >= subject.topics.length) {
+      return res.status(400).json({ error: 'Invalid topic index' });
+    }
+    subject.topics.splice(topicIndex, 1);
+    subject.totalAllocatedTime = subject.topics.reduce((sum, t) => sum + Number(t.allocatedTime || 0), 0);
+    await studyPlan.save();
+    res.json(subject);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
 module.exports = router;

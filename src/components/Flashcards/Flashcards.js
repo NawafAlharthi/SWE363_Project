@@ -28,6 +28,15 @@ const Flashcards = () => {
     }
   }, [selectedDeck]);
 
+  // Load assessment from localStorage when card or deck changes
+  useEffect(() => {
+    if (selectedDeck && currentCard) {
+      const key = `flashcard-assessment-${selectedDeck._id}-${currentCard._id}`;
+      const saved = localStorage.getItem(key);
+      setAssessment(saved || null);
+    }
+  }, [selectedDeck, currentCardIndex, flashcards]);
+
   const fetchDecks = async () => {
     try {
       const response = await api.get('/flashcards/decks');
@@ -150,6 +159,15 @@ const Flashcards = () => {
   const currentCard = flashcards[currentCardIndex];
   const totalCards = flashcards.length;
 
+  // Save assessment to localStorage
+  const handleAssessment = (value) => {
+    if (selectedDeck && currentCard) {
+      const key = `flashcard-assessment-${selectedDeck._id}-${currentCard._id}`;
+      localStorage.setItem(key, value);
+      setAssessment(value);
+    }
+  };
+
   if (error) {
     return (
       <>
@@ -256,21 +274,21 @@ const Flashcards = () => {
                       <S.AssessmentButton
                         type="need-review"
                         active={assessment === 'need-review'}
-                        onClick={() => setAssessment('need-review')}
+                        onClick={() => handleAssessment('need-review')}
                       >
                         Need Review
                       </S.AssessmentButton>
                       <S.AssessmentButton
                         type="almost"
                         active={assessment === 'almost'}
-                        onClick={() => setAssessment('almost')}
+                        onClick={() => handleAssessment('almost')}
                       >
                         Almost There
                       </S.AssessmentButton>
                       <S.AssessmentButton
                         type="known"
                         active={assessment === 'known'}
-                        onClick={() => setAssessment('known')}
+                        onClick={() => handleAssessment('known')}
                       >
                         Known
                       </S.AssessmentButton>

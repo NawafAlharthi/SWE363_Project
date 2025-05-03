@@ -172,7 +172,8 @@ const TaskModal = ({ isOpen, onClose, onAddTask }) => {
       onAddTask({
         id: Date.now(),
         title: taskTitle,
-        dueDate: dueDateText,
+        dueDate: dueDate || '',
+        dueDateLabel: dueDateText,
         icon: taskType,
         completed: false,
         priority,
@@ -262,6 +263,7 @@ const TaskModal = ({ isOpen, onClose, onAddTask }) => {
               id="dueDate"
               type="date"
               value={dueDate}
+              min={new Date().toISOString().split('T')[0]}
               onChange={(e) => setDueDate(e.target.value)}
             />
           </FormGroup>

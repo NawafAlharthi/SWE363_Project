@@ -428,6 +428,7 @@ const Dashboard = () => {
     weekEnd.setDate(weekStart.getDate() + 6);
     
     const weeklyTasks = tasks.filter(task => {
+      if (!task.dueDate) return false;
       const taskDate = new Date(task.dueDate);
       return taskDate >= weekStart && taskDate <= weekEnd;
     });
@@ -486,7 +487,6 @@ const Dashboard = () => {
               </div>
               <ButtonGroup>
                 <AddTaskButton onClick={() => setIsTaskModalOpen(true)}>Add Task</AddTaskButton>
-                <ViewAllButton>View All</ViewAllButton>
               </ButtonGroup>
             </TasksHeader>
             
@@ -529,7 +529,7 @@ const Dashboard = () => {
                         {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
                       </PriorityBadge>}
                     </TaskTitle>
-                    <TaskDueDate>{task.dueDate}</TaskDueDate>
+                    <TaskDueDate>{task.dueDateLabel || task.dueDate}</TaskDueDate>
                   </TaskContent>
                   <TaskToggle>
                     <input 

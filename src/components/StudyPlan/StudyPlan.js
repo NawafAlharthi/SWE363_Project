@@ -1014,23 +1014,75 @@ const StudyPlan = () => {
                   <form
                     onSubmit={e => {
                       e.preventDefault();
-                      const topicInput = e.target.topic;
-                      if (topicInput.value.trim()) {
-                        handleAddTopic(subject._id, topicInput.value.trim());
-                        topicInput.value = '';
+                      const name = e.target.topicName.value.trim();
+                      const allocatedTime = Number(e.target.allocatedTime.value) || 30;
+                      const day = e.target.day.value;
+                      const priority = e.target.priority.value;
+                      if (name) {
+                        handleAddTopic(subject._id, {
+                          name,
+                          allocatedTime,
+                          day,
+                          priority,
+                          completed: false
+                        });
+                        e.target.topicName.value = '';
+                        e.target.allocatedTime.value = 30;
+                        e.target.day.value = 'Monday';
+                        e.target.priority.value = 'Medium';
                       }
                     }}
                     style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}
                   >
                     <input
-                      name="topic"
+                      name="topicName"
                       placeholder="Add new topic"
+                      required
+                      style={{
+                        flex: 2, borderRadius: 999, border: '1px solid #ececff', padding: '0.6rem 1.2rem', fontSize: 15,
+                        outline: 'none', background: '#f8f9ff', marginRight: 8
+                      }}
+                    />
+                    <input
+                      name="allocatedTime"
+                      type="number"
+                      min="1"
+                      defaultValue={30}
+                      placeholder="Minutes"
                       required
                       style={{
                         flex: 1, borderRadius: 999, border: '1px solid #ececff', padding: '0.6rem 1.2rem', fontSize: 15,
                         outline: 'none', background: '#f8f9ff', marginRight: 8
                       }}
                     />
+                    <select
+                      name="day"
+                      defaultValue="Monday"
+                      style={{
+                        flex: 1, borderRadius: 999, border: '1px solid #ececff', padding: '0.6rem 1.2rem', fontSize: 15,
+                        outline: 'none', background: '#f8f9ff', marginRight: 8
+                      }}
+                    >
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                      <option value="Sunday">Sunday</option>
+                    </select>
+                    <select
+                      name="priority"
+                      defaultValue="Medium"
+                      style={{
+                        flex: 1, borderRadius: 999, border: '1px solid #ececff', padding: '0.6rem 1.2rem', fontSize: 15,
+                        outline: 'none', background: '#f8f9ff', marginRight: 8
+                      }}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
                     <button
                       type="submit"
                       style={{
@@ -1074,7 +1126,7 @@ const StudyPlan = () => {
                               <S.SessionSubject>
                                 <span style={{ fontWeight: 700, color: '#6c5ce7', marginRight: 8 }}>{session.subjectName}</span>
                                 <span style={{ color: '#888', marginRight: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                  <span role="img" aria-label="time">⏰</span> {session.allocatedTime}h
+                                  <span role="img" aria-label="time">⏰</span> {session.allocatedTime}min
                                 </span>
                                 <span style={{ color: '#888', marginRight: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
                                   <span role="img" aria-label="topic">📚</span> {session.name}

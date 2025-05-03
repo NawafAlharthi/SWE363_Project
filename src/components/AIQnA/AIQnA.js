@@ -186,20 +186,24 @@ const FeedbackSection = styled.div`
 `;
 
 const FeedbackButton = styled.button`
-  background: ${props => props.active ? '#e6e6ff' : 'transparent'};
-  color: ${props => props.active ? '#6c5ce7' : '#666'};
-  border: 1px solid ${props => props.active ? '#6c5ce7' : '#e1e1e1'};
+  background: ${({ active, helpful }) =>
+    active ? (helpful ? '#eafbe7' : '#fdeaea') : 'transparent'};
+  color: ${({ active, helpful }) =>
+    active ? (helpful ? '#27ae60' : '#e74c3c') : '#666'};
+  border: 1px solid ${({ active, helpful }) =>
+    active ? (helpful ? '#27ae60' : '#e74c3c') : '#e1e1e1'};
   border-radius: 20px;
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? 'not-allowed' : 'pointer')};
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+  opacity: ${({ disabled }) => (disabled ? 0.6 : 1)};
   &:hover {
-    background: ${props => props.active ? '#e6e6ff' : '#f8f9ff'};
+    background: ${({ active, helpful }) =>
+      active ? (helpful ? '#eafbe7' : '#fdeaea') : '#f8f9ff'};
   }
 `;
 
@@ -220,6 +224,8 @@ const AIQnA = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [feedbackThanks, setFeedbackThanks] = useState({});
+  const [feedbackGiven, setFeedbackGiven] = useState({});
 
   useEffect(() => {
     fetchQnAs();
@@ -262,18 +268,36 @@ const AIQnA = () => {
   };
 
   const handleFeedback = async (id, isHelpful) => {
+    if (feedbackGiven[id]) return;
     try {
       const response = await axios.post(`http://localhost:5001/api/aiqna/${id}/feedback`, {
         isHelpful
       });
-
       setConversations(prev =>
         prev.map(conv =>
-          conv._id === id ? { ...conv, feedback: response.data.feedback } : conv
+          conv._id === id ? { ...conv, feedback: isHelpful } : conv
         )
       );
+      setFeedbackThanks(prev => ({ ...prev, [id]: true }));
+      setFeedbackGiven(prev => ({ ...prev, [id]: true }));
     } catch (err) {
       console.error('Error updating feedback:', err);
+    }
+  };
+
+  const handleDeleteQnA = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5001/api/aiqna/${id}`);
+      setConversations(prev => {
+        const updated = prev.filter(conv => conv._id !== id);
+        if (updated.length === 0) {
+          fetchQnAs();
+        }
+        return updated;
+      });
+    } catch (err) {
+      setError('Failed to delete question.');
+      console.error('Error deleting QnA:', err);
     }
   };
 
@@ -333,12 +357,13 @@ const AIQnA = () => {
           ) : conversations.length > 0 ? (
             conversations.map((conv) => (
               <QnACard key={conv._id}>
-                <Question>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <QuestionHeader>
                     <Icon type="user">Q</Icon>
                     <Text>{conv.question}</Text>
                   </QuestionHeader>
-                </Question>
+                  <Button style={{ background: 'none', color: '#dc3545', border: 'none', fontSize: 18, padding: 0, marginLeft: 8 }} title="Delete Question" onClick={() => handleDeleteQnA(conv._id)}>🗑️</Button>
+                </div>
                 <Answer>
                   <QuestionHeader>
                     <Icon type="ai">A</Icon>
@@ -347,22 +372,29 @@ const AIQnA = () => {
                 </Answer>
                 <FeedbackSection>
                   <FeedbackButton
+                    helpful={true}
                     active={conv.feedback === true}
+                    disabled={feedbackGiven[conv._id]}
                     onClick={() => handleFeedback(conv._id, true)}
                   >
                     Helpful
                   </FeedbackButton>
                   <FeedbackButton
+                    helpful={false}
                     active={conv.feedback === false}
+                    disabled={feedbackGiven[conv._id]}
                     onClick={() => handleFeedback(conv._id, false)}
                   >
                     Not Helpful
                   </FeedbackButton>
+                  {feedbackThanks[conv._id] && (
+                    <span style={{ color: '#27ae60', marginLeft: 10 }}>Thanks for your feedback!</span>
+                  )}
                 </FeedbackSection>
               </QnACard>
             ))
           ) : (
-            <Text>No conversations yet. Ask a question to get started!</Text>
+            <Text>No questions asked.</Text>
           )}
         </ConversationSection>
       </Container>
