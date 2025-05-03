@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
+import AnimatedContainer from '../common/AnimatedContainer';
 
 const Container = styled.div`
   font-family: 'Inter', sans-serif;
@@ -145,9 +146,35 @@ const SettingsSection = styled.div`
 `;
 
 const SettingItem = styled.div`
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.5rem 1fr 140px;
   align-items: center;
+  gap: 1.2rem;
   margin-bottom: 1.5rem;
+  background: #f8f9ff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(80,80,180,0.06);
+  padding: 1.2rem 1.5rem;
+  border: 1.5px solid #ececff;
+  transition: box-shadow 0.2s, border 0.2s;
+  position: relative;
+
+  &:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 2.5rem;
+    right: 1.5rem;
+    bottom: -0.75rem;
+    height: 1px;
+    background: #ececff;
+    border-radius: 1px;
+    opacity: 0.7;
+  }
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(108, 92, 231, 0.10);
+    border: 1.5px solid #d1d1f7;
+  }
 `;
 
 const SettingIcon = styled.div`
@@ -165,45 +192,63 @@ const SettingIcon = styled.div`
 
 const SettingContent = styled.div`
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 `;
 
 const SettingTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  color: #333;
+  font-size: 1.08rem;
+  font-weight: 600;
+  margin-bottom: 0.18rem;
+  color: #3a3a4d;
 `;
 
 const SettingValue = styled.div`
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.97rem;
+  color: #8b8bb0;
+  font-weight: 400;
 `;
 
 const SettingControl = styled.div`
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  min-width: 120px;
 `;
 
 const SelectDropdown = styled.select`
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  width: 100%;
+  min-width: 120px;
+  max-width: 160px;
+  padding: 0.6rem 1.2rem 0.6rem 0.8rem;
+  border: 1.2px solid #d1d1f7;
+  border-radius: 8px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
+  font-size: 1.08rem;
   color: #333;
-  
+  background: #f4f6ff url('data:image/svg+xml;utf8,<svg fill=\"%236c5ce7\" height=\"16\" viewBox=\"0 0 24 24\" width=\"16\" xmlns=\"http://www.w3.org/2000/svg\"><path d=\"M7 10l5 5 5-5z\"/></svg>') no-repeat right 0.7rem center/1rem 1rem;
+  box-shadow: 0 1px 3px rgba(80,80,180,0.05);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: border 0.2s, box-shadow 0.2s;
+  margin-bottom: 0;
+
   &:focus {
     outline: none;
-    border-color: #6c5ce7;
+    border: 1.2px solid #6c5ce7;
+    box-shadow: 0 2px 6px rgba(108, 92, 231, 0.07);
   }
 `;
 
 const ToggleSwitch = styled.label`
   position: relative;
   display: inline-block;
-  width: 48px;
-  height: 24px;
-  
+  width: 40px;
+  height: 22px;
+  margin-bottom: 1.2rem;
+
   input {
     opacity: 0;
     width: 0;
@@ -218,28 +263,32 @@ const Slider = styled.span`
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #ccc;
+  background-color: #d1d1f7;
   transition: .4s;
-  border-radius: 24px;
-  
+  border-radius: 22px;
+  box-shadow: 0 2px 6px rgba(108, 92, 231, 0.07);
+
   &:before {
     position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
+    height: 16px;
+    width: 16px;
     left: 3px;
     bottom: 3px;
     background-color: white;
     transition: .4s;
     border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(80,80,180,0.08);
+    border: 2px solid #e6e6ff;
   }
-  
+
   input:checked + & {
     background-color: #6c5ce7;
   }
-  
+
   input:checked + &:before {
-    transform: translateX(24px);
+    transform: translateX(18px);
+    border: 2px solid #6c5ce7;
   }
 `;
 
@@ -413,168 +462,172 @@ const PomodoroTimer = () => {
     <>
       <Navbar isLoggedIn={true} />
       <Container>
-        <PageTitle>Pomodoro Timer</PageTitle>
-        
-        <TimerTabs>
-          <TimerTab 
-            active={activeTab === 'focus'} 
-            onClick={() => setActiveTab('focus')}
-          >
-            Focus
-          </TimerTab>
-          <TimerTab 
-            active={activeTab === 'short-break'} 
-            onClick={() => setActiveTab('short-break')}
-          >
-            Short Break
-          </TimerTab>
-          <TimerTab 
-            active={activeTab === 'long-break'} 
-            onClick={() => setActiveTab('long-break')}
-          >
-            Long Break
-          </TimerTab>
-        </TimerTabs>
-        
-        <TimerCard>
-          <TimerDisplay>{formatTime(time)}</TimerDisplay>
-          <TimerMessage>
-            {activeTab === 'focus' ? 'Focus on your task' : 
-             activeTab === 'short-break' ? 'Take a short break' : 'Take a long break'}
-          </TimerMessage>
-          <TimerControls>
-            {!isRunning ? (
-              <TimerButton onClick={handleStart}>Start</TimerButton>
-            ) : (
-              <TimerButton onClick={handlePause}>Pause</TimerButton>
-            )}
-            <TimerButton secondary onClick={handleReset}>Reset</TimerButton>
-          </TimerControls>
-        </TimerCard>
-        
-        <ProgressSection>
-          <SectionTitle>Today's Progress</SectionTitle>
-          
-          <ProgressGrid>
-            <ProgressCard>
-              <ProgressIcon>⏱️</ProgressIcon>
-              <ProgressValue>{completedPomodoros}</ProgressValue>
-              <ProgressLabel>Completed Pomodoros</ProgressLabel>
-            </ProgressCard>
+        <AnimatedContainer delay="0.05s">
+          <PageTitle>Pomodoro Timer</PageTitle>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.1s">
+          <TimerTabs>
+            <TimerTab 
+              active={activeTab === 'focus'} 
+              onClick={() => setActiveTab('focus')}
+            >
+              Focus
+            </TimerTab>
+            <TimerTab 
+              active={activeTab === 'short-break'} 
+              onClick={() => setActiveTab('short-break')}
+            >
+              Short Break
+            </TimerTab>
+            <TimerTab 
+              active={activeTab === 'long-break'} 
+              onClick={() => setActiveTab('long-break')}
+            >
+              Long Break
+            </TimerTab>
+          </TimerTabs>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.15s">
+          <TimerCard>
+            <TimerDisplay>{formatTime(time)}</TimerDisplay>
+            <TimerMessage>
+              {activeTab === 'focus' ? 'Focus on your task' : 
+               activeTab === 'short-break' ? 'Take a short break' : 'Take a long break'}
+            </TimerMessage>
+            <TimerControls>
+              {!isRunning ? (
+                <TimerButton onClick={handleStart}>Start</TimerButton>
+              ) : (
+                <TimerButton onClick={handlePause}>Pause</TimerButton>
+              )}
+              <TimerButton secondary onClick={handleReset}>Reset</TimerButton>
+            </TimerControls>
+          </TimerCard>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.2s">
+          <ProgressSection>
+            <SectionTitle>Today's Progress</SectionTitle>
+            <ProgressGrid>
+              <ProgressCard>
+                <ProgressIcon>⏱️</ProgressIcon>
+                <ProgressValue>{completedPomodoros}</ProgressValue>
+                <ProgressLabel>Completed Pomodoros</ProgressLabel>
+              </ProgressCard>
+              
+              <ProgressCard>
+                <ProgressIcon>⏳</ProgressIcon>
+                <ProgressValue>{totalFocusTime} min</ProgressValue>
+                <ProgressLabel>Total Focus Time</ProgressLabel>
+              </ProgressCard>
+              
+              <ProgressCard>
+                <ProgressIcon>☕</ProgressIcon>
+                <ProgressValue>{totalBreakTime} min</ProgressValue>
+                <ProgressLabel>Total Break Time</ProgressLabel>
+              </ProgressCard>
+            </ProgressGrid>
+          </ProgressSection>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.25s">
+          <SettingsSection>
+            <SectionTitle>Settings</SectionTitle>
+            <SettingItem>
+              <SettingIcon>⏱️</SettingIcon>
+              <SettingContent>
+                <SettingTitle>Focus Duration</SettingTitle>
+                <SettingValue>{focusDuration} minutes</SettingValue>
+              </SettingContent>
+              <SettingControl>
+                <SelectDropdown 
+                  value={focusDuration}
+                  onChange={handleFocusChange}
+                >
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="25">25 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                  <option value="60">60 minutes</option>
+                </SelectDropdown>
+              </SettingControl>
+            </SettingItem>
             
-            <ProgressCard>
-              <ProgressIcon>⏳</ProgressIcon>
-              <ProgressValue>{totalFocusTime} min</ProgressValue>
-              <ProgressLabel>Total Focus Time</ProgressLabel>
-            </ProgressCard>
+            <SettingItem>
+              <SettingIcon>☕</SettingIcon>
+              <SettingContent>
+                <SettingTitle>Short Break</SettingTitle>
+                <SettingValue>{shortBreakDuration} minutes</SettingValue>
+              </SettingContent>
+              <SettingControl>
+                <SelectDropdown
+                  value={shortBreakDuration}
+                  onChange={handleShortBreakChange}
+                >
+                  <option value="3">3 minutes</option>
+                  <option value="5">5 minutes</option>
+                  <option value="10">10 minutes</option>
+                  <option value="15">15 minutes</option>
+                </SelectDropdown>
+              </SettingControl>
+            </SettingItem>
             
-            <ProgressCard>
-              <ProgressIcon>☕</ProgressIcon>
-              <ProgressValue>{totalBreakTime} min</ProgressValue>
-              <ProgressLabel>Total Break Time</ProgressLabel>
-            </ProgressCard>
-          </ProgressGrid>
-        </ProgressSection>
-        
-        <SettingsSection>
-          <SectionTitle>Settings</SectionTitle>
-          
-          <SettingItem>
-            <SettingIcon>⏱️</SettingIcon>
-            <SettingContent>
-              <SettingTitle>Focus Duration</SettingTitle>
-              <SettingValue>{focusDuration} minutes</SettingValue>
-            </SettingContent>
-            <SettingControl>
-              <SelectDropdown 
-                value={focusDuration}
-                onChange={handleFocusChange}
-              >
-                <option value="15">15 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="25">25 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-                <option value="60">60 minutes</option>
-              </SelectDropdown>
-            </SettingControl>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingIcon>☕</SettingIcon>
-            <SettingContent>
-              <SettingTitle>Short Break</SettingTitle>
-              <SettingValue>{shortBreakDuration} minutes</SettingValue>
-            </SettingContent>
-            <SettingControl>
-              <SelectDropdown
-                value={shortBreakDuration}
-                onChange={handleShortBreakChange}
-              >
-                <option value="3">3 minutes</option>
-                <option value="5">5 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="15">15 minutes</option>
-              </SelectDropdown>
-            </SettingControl>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingIcon>🛋️</SettingIcon>
-            <SettingContent>
-              <SettingTitle>Long Break</SettingTitle>
-              <SettingValue>{longBreakDuration} minutes</SettingValue>
-            </SettingContent>
-            <SettingControl>
-              <SelectDropdown
-                value={longBreakDuration}
-                onChange={handleLongBreakChange}
-              >
-                <option value="15">15 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="25">25 minutes</option>
-                <option value="30">30 minutes</option>
-                <option value="45">45 minutes</option>
-              </SelectDropdown>
-            </SettingControl>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingIcon>🔔</SettingIcon>
-            <SettingContent>
-              <SettingTitle>Sound Notifications</SettingTitle>
-              <SettingValue>{soundEnabled ? 'Enabled' : 'Disabled'}</SettingValue>
-            </SettingContent>
-            <SettingControl>
-              <ToggleSwitch>
-                <input 
-                  type="checkbox" 
-                  checked={soundEnabled}
-                  onChange={() => setSoundEnabled(!soundEnabled)}
-                />
-                <Slider />
-              </ToggleSwitch>
-            </SettingControl>
-          </SettingItem>
-          
-          <SettingItem>
-            <SettingIcon>🔄</SettingIcon>
-            <SettingContent>
-              <SettingTitle>Auto-start Breaks</SettingTitle>
-              <SettingValue>{autoStartBreaks ? 'Enabled' : 'Disabled'}</SettingValue>
-            </SettingContent>
-            <SettingControl>
-              <ToggleSwitch>
-                <input 
-                  type="checkbox" 
-                  checked={autoStartBreaks}
-                  onChange={() => setAutoStartBreaks(!autoStartBreaks)}
-                />
-                <Slider />
-              </ToggleSwitch>
-            </SettingControl>
-          </SettingItem>
-        </SettingsSection>
+            <SettingItem>
+              <SettingIcon>🛋️</SettingIcon>
+              <SettingContent>
+                <SettingTitle>Long Break</SettingTitle>
+                <SettingValue>{longBreakDuration} minutes</SettingValue>
+              </SettingContent>
+              <SettingControl>
+                <SelectDropdown
+                  value={longBreakDuration}
+                  onChange={handleLongBreakChange}
+                >
+                  <option value="15">15 minutes</option>
+                  <option value="20">20 minutes</option>
+                  <option value="25">25 minutes</option>
+                  <option value="30">30 minutes</option>
+                  <option value="45">45 minutes</option>
+                </SelectDropdown>
+              </SettingControl>
+            </SettingItem>
+            
+            <SettingItem>
+              <SettingIcon>🔔</SettingIcon>
+              <SettingContent>
+                <SettingTitle>Sound Notifications</SettingTitle>
+                <SettingValue>{soundEnabled ? 'Enabled' : 'Disabled'}</SettingValue>
+              </SettingContent>
+              <SettingControl>
+                <ToggleSwitch>
+                  <input 
+                    type="checkbox" 
+                    checked={soundEnabled}
+                    onChange={() => setSoundEnabled(!soundEnabled)}
+                  />
+                  <Slider />
+                </ToggleSwitch>
+              </SettingControl>
+            </SettingItem>
+            
+            <SettingItem>
+              <SettingIcon>🔄</SettingIcon>
+              <SettingContent>
+                <SettingTitle>Auto-start Breaks</SettingTitle>
+                <SettingValue>{autoStartBreaks ? 'Enabled' : 'Disabled'}</SettingValue>
+              </SettingContent>
+              <SettingControl>
+                <ToggleSwitch>
+                  <input 
+                    type="checkbox" 
+                    checked={autoStartBreaks}
+                    onChange={() => setAutoStartBreaks(!autoStartBreaks)}
+                  />
+                  <Slider />
+                </ToggleSwitch>
+              </SettingControl>
+            </SettingItem>
+          </SettingsSection>
+        </AnimatedContainer>
       </Container>
     </>
   );
