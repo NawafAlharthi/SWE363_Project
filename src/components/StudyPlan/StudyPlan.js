@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
+import axios from 'axios';
 import { 
   AddSubjectModal, 
   EditSubjectModal, 
@@ -139,11 +140,17 @@ const SubjectTab = styled.button`
 const SubjectCard = styled.div`
   display: flex;
   align-items: center;
-  background-color: #f8f9ff;
-  border-radius: 8px;
+  background-color: #fff;
+  border-radius: 12px;
   padding: 1.5rem;
-  margin-bottom: 1rem;
-  opacity: ${props => props.inactive ? 0.6 : 1};
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 8px rgba(80, 80, 180, 0.06);
+  border: 1px solid #ececff;
+  transition: box-shadow 0.2s, border 0.2s;
+  &:hover {
+    box-shadow: 0 4px 16px rgba(80, 80, 180, 0.12);
+    border: 1px solid #d1d1f7;
+  }
 `;
 
 const SubjectIcon = styled.div`
@@ -190,89 +197,6 @@ const ActionButton = styled.button`
   
   &:hover {
     color: #5a4ad1;
-  }
-`;
-
-const ToggleSwitch = styled.label`
-  position: relative;
-  display: inline-block;
-  width: 48px;
-  height: 24px;
-  
-  input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-`;
-
-const Slider = styled.span`
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #ccc;
-  transition: .4s;
-  border-radius: 24px;
-  
-  &:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
-  
-  input:checked + & {
-    background-color: #6c5ce7;
-  }
-  
-  input:checked + &:before {
-    transform: translateX(24px);
-  }
-`;
-
-const Tooltip = styled.div`
-  position: relative;
-  display: inline-block;
-  
-  &:hover .tooltiptext {
-    visibility: visible;
-    opacity: 1;
-  }
-`;
-
-const TooltipText = styled.span`
-  visibility: hidden;
-  width: 200px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 6px;
-  padding: 0.5rem;
-  position: absolute;
-  z-index: 1;
-  bottom: 125%;
-  left: 50%;
-  transform: translateX(-50%);
-  opacity: 0;
-  transition: opacity 0.3s;
-  
-  &::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #333 transparent transparent transparent;
   }
 `;
 
@@ -529,233 +453,74 @@ const SessionActions = styled.div`
 `;
 
 const StudyPlan = () => {
-  // State for active tab
-  const [activeTab, setActiveTab] = useState('all');
-  
-  // State for modals
+  const [subjects, setSubjects] = useState([]);
+  const [activeSubject, setActiveSubject] = useState(null);
   const [isAddSubjectModalOpen, setIsAddSubjectModalOpen] = useState(false);
   const [isEditSubjectModalOpen, setIsEditSubjectModalOpen] = useState(false);
   const [isDeleteSubjectModalOpen, setIsDeleteSubjectModalOpen] = useState(false);
   const [isWeeklyProgressModalOpen, setIsWeeklyProgressModalOpen] = useState(false);
+  const [selectedSubjectForEdit, setSelectedSubjectForEdit] = useState(null);
+  const [selectedSubjectForDelete, setSelectedSubjectForDelete] = useState(null);
+  const [expandedDays, setExpandedDays] = useState(new Set());
+  const [activeTab, setActiveTab] = useState('all');
   const [expandedProgress, setExpandedProgress] = useState(false);
-  
-  // State for expanded day sections
-  const [expandedDays, setExpandedDays] = useState({
-    Monday: true,
-    Tuesday: true,
-    Wednesday: true,
-    Thursday: true,
-    Friday: true,
-    Saturday: true,
-    Sunday: true
-  });
-  
-  // State for subject being edited or deleted
   const [currentSubject, setCurrentSubject] = useState(null);
-  
-  // Sample data for subjects
-  const [subjects, setSubjects] = useState([
-    {
-      id: 1,
-      name: 'Mathematics',
-      icon: '∑',
-      active: true,
-      sessions: [
-        { id: 1, day: 'Monday', duration: '2', topic: 'Calculus Ch. 5-6', priority: 'High', completed: true },
-        { id: 2, day: 'Friday', duration: '1.5', topic: 'Practice Problems', priority: 'Medium', completed: false }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Physics',
-      icon: '⚛️',
-      active: true,
-      sessions: [
-        { id: 3, day: 'Wednesday', duration: '2', topic: 'Mechanics', priority: 'High', completed: true }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Computer Science',
-      icon: '💻',
-      active: true,
-      sessions: [
-        { id: 4, day: 'Tuesday', duration: '1.5', topic: 'Algorithms', priority: 'Medium', completed: false }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Literature',
-      icon: '📚',
-      active: true,
-      sessions: [
-        { id: 5, day: 'Thursday', duration: '1', topic: 'Essay Preparation', priority: 'Medium', completed: false }
-      ]
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchSubjects();
+  }, []);
+
+  const fetchSubjects = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get('http://localhost:5001/api/studyplans');
+      setSubjects(response.data.subjects || []);
+    } catch (err) {
+      setError('Failed to load study plan');
+      setSubjects([]);
+    } finally {
+      setIsLoading(false);
     }
-  ]);
-  
-  // Sample data for weekly progress
-  const [progressData, setProgressData] = useState({
-    completionPercentage: 68,
-    dailyBreakdown: [
-      { day: 'Monday', completed: 2, total: 2 },
-      { day: 'Tuesday', completed: 1, total: 2 },
-      { day: 'Wednesday', completed: 1, total: 1 },
-      { day: 'Thursday', completed: 0, total: 1 },
-      { day: 'Friday', completed: 1, total: 2 }
-    ],
-    subjectSummary: [
-      { name: 'Mathematics', completed: 2, total: 2 },
-      { name: 'Physics', completed: 1, total: 1 },
-      { name: 'Computer Science', completed: 1, total: 2 },
-      { name: 'Literature', completed: 0, total: 1 }
-    ],
-    missedSessions: [
-      { day: 'Thursday', subject: 'Literature', topic: 'Essay Preparation', duration: '1' },
-      { day: 'Friday', subject: 'Computer Science', topic: 'Data Structures', duration: '1.5' }
-    ]
-  });
-  
+  };
+
+  const handleAddSubject = async (subject) => {
+    setError(null);
+    try {
+      const response = await axios.post('http://localhost:5001/api/studyplans/add', { subject });
+      setSubjects(prev => [response.data, ...prev]);
+    } catch (err) {
+      setError('Failed to add subject');
+    }
+  };
+
+  const handleEditSubject = async (updatedSubject) => {
+    setError(null);
+    try {
+      const response = await axios.put(`http://localhost:5001/api/studyplans/${updatedSubject._id}`, { subject: updatedSubject });
+      setSubjects(prev => prev.map(s => s._id === updatedSubject._id ? response.data : s));
+    } catch (err) {
+      setError('Failed to update subject');
+    }
+  };
+
+  const handleDeleteSubject = async (subjectId) => {
+    setError(null);
+    try {
+      await axios.delete(`http://localhost:5001/api/studyplans/${subjectId}`);
+      setSubjects(prev => prev.filter(s => s._id !== subjectId));
+    } catch (err) {
+      setError('Failed to delete subject');
+    }
+  };
+
   // Filtered subjects based on active tab
   const filteredSubjects = activeTab === 'all' 
     ? subjects 
     : subjects.filter(subject => subject.name.toLowerCase() === activeTab);
-  
-  // Function to handle adding a new subject
-  const handleAddSubject = (newSubject) => {
-    const subjectWithId = {
-      id: Date.now(),
-      icon: getSubjectIcon(newSubject.name),
-      active: true,
-      ...newSubject
-    };
-    
-    setSubjects([...subjects, subjectWithId]);
-    
-    // Update schedule with new sessions
-    updateSchedule([...subjects, subjectWithId]);
-  };
-  
-  // Function to handle editing a subject
-  const handleEditSubject = (updatedSubject) => {
-    const updatedSubjects = subjects.map(subject => 
-      subject.id === updatedSubject.id ? { ...subject, ...updatedSubject } : subject
-    );
-    
-    setSubjects(updatedSubjects);
-    
-    // Update schedule with updated sessions
-    updateSchedule(updatedSubjects);
-  };
-  
-  // Function to handle deleting a subject
-  const handleDeleteSubject = (subjectId) => {
-    const updatedSubjects = subjects.filter(subject => subject.id !== subjectId);
-    setSubjects(updatedSubjects);
-    
-    // Update schedule with remaining subjects
-    updateSchedule(updatedSubjects);
-  };
-  
-  // Function to handle toggling subject active state
-  const handleToggleSubject = (subjectId) => {
-    const updatedSubjects = subjects.map(subject => 
-      subject.id === subjectId ? { ...subject, active: !subject.active } : subject
-    );
-    
-    setSubjects(updatedSubjects);
-    
-    // Update schedule with updated active states
-    updateSchedule(updatedSubjects);
-  };
-  
-  // Function to handle toggling session completion status
-  const handleToggleSession = (subjectId, sessionId) => {
-    const updatedSubjects = subjects.map(subject => {
-      if (subject.id === subjectId) {
-        const updatedSessions = subject.sessions.map(session => 
-          session.id === sessionId ? { ...session, completed: !session.completed } : session
-        );
-        return { ...subject, sessions: updatedSessions };
-      }
-      return subject;
-    });
-    
-    setSubjects(updatedSubjects);
-    
-    // Update schedule with updated completion status
-    updateSchedule(updatedSubjects);
-  };
-  
-  // Function to update schedule based on subjects
-  const updateSchedule = (updatedSubjects) => {
-    // Get all active subjects
-    const activeSubjects = updatedSubjects.filter(subject => subject.active);
-    
-    // Count total and completed sessions
-    const allSessions = [];
-    let completedSessions = 0;
-    
-    activeSubjects.forEach(subject => {
-      subject.sessions.forEach(session => {
-        allSessions.push({
-          ...session,
-          subject: subject.name
-        });
-        
-        if (session.completed) {
-          completedSessions++;
-        }
-      });
-    });
-    
-    const totalSessions = allSessions.length;
-    
-    // Group sessions by day for daily breakdown
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const dailyBreakdown = days.map(day => {
-      const daySessions = allSessions.filter(session => session.day === day);
-      const dayCompleted = daySessions.filter(session => session.completed).length;
-      
-      return {
-        day,
-        completed: dayCompleted,
-        total: daySessions.length
-      };
-    }).filter(day => day.total > 0); // Only include days with sessions
-    
-    // Group sessions by subject for subject summary
-    const subjectSummary = [];
-    activeSubjects.forEach(subject => {
-      const subjectSessions = subject.sessions;
-      const subjectCompleted = subjectSessions.filter(session => session.completed).length;
-      
-      subjectSummary.push({
-        name: subject.name,
-        completed: subjectCompleted,
-        total: subjectSessions.length
-      });
-    });
-    
-    // Find missed/pending sessions
-    const missedSessions = allSessions
-      .filter(session => !session.completed)
-      .map(session => ({
-        day: session.day,
-        subject: session.subject,
-        topic: session.topic,
-        duration: session.duration
-      }));
-    
-    // Update progress data
-    setProgressData({
-      completionPercentage: totalSessions > 0 ? Math.floor((completedSessions / totalSessions) * 100) : 0,
-      dailyBreakdown,
-      subjectSummary,
-      missedSessions
-    });
-  };
-  
+
   // Function to get an icon for a subject based on its name
   const getSubjectIcon = (name) => {
     const lowerName = name.toLowerCase();
@@ -768,341 +533,322 @@ const StudyPlan = () => {
     if (lowerName.includes('biology')) return '🧬';
     return '📘';
   };
-  
-  // Function to check for schedule conflicts
-  const checkForConflicts = (day, sessions) => {
-    const daySessions = sessions.filter(session => session.day === day);
-    
-    // Check for conflicts (simplified version)
-    return daySessions.length > 1;
+
+  // Functions for day section expansion
+  const toggleDayExpanded = (day) => {
+    setExpandedDays(prev => {
+      const newSet = new Set(prev);
+      if (prev.has(day)) {
+        newSet.delete(day);
+      } else {
+        newSet.add(day);
+      }
+      return newSet;
+    });
   };
-  
-  // Generate schedule data grouped by day
-  const generateScheduleData = () => {
+
+  const isDayExpanded = (day) => {
+    return expandedDays.has(day);
+  };
+
+  // Group topics by day
+  const getScheduleByDay = () => {
     const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const scheduleData = {};
-    
-    days.forEach(day => {
-      const daySessions = [];
-      
-      // Collect all sessions for this day from active subjects
-      subjects.forEach(subject => {
-        if (subject.active) {
-          subject.sessions.forEach(session => {
-            if (session.day === day) {
-              daySessions.push({
-                ...session,
-                subject: subject.name,
-                subjectId: subject.id,
-                icon: subject.icon
-              });
+    const schedule = {};
+    subjects.forEach(subject => {
+      subject.topics.forEach(topic => {
+        if (!schedule[topic.day]) schedule[topic.day] = [];
+        schedule[topic.day].push({
+          ...topic,
+          subjectName: subject.name,
+          subjectId: subject._id,
+        });
+      });
+    });
+    // Only include days with sessions
+    return days.reduce((acc, day) => {
+      if (schedule[day] && schedule[day].length > 0) acc[day] = schedule[day];
+      return acc;
+    }, {});
+  };
+
+  // Handler to toggle session completion
+  const handleToggleSession = async (subjectId, topicId) => {
+    setError(null);
+    try {
+      const response = await axios.patch(`http://localhost:5001/api/studyplans/${subjectId}/topics/${topicId}/toggle`);
+      // Update local state
+      setSubjects(prev => prev.map(subject =>
+        subject._id === subjectId
+          ? {
+              ...subject,
+              topics: subject.topics.map(topic =>
+                topic._id === topicId ? { ...topic, completed: response.data.completed } : topic
+              )
             }
+          : subject
+      ));
+    } catch (err) {
+      setError('Failed to toggle session completion');
+    }
+  };
+
+  // UI for Weekly Study Schedule
+  const scheduleByDay = getScheduleByDay();
+
+  // Compute weekly progress stats
+  const computeWeeklyProgress = () => {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    let totalSessions = 0;
+    let completedSessions = 0;
+    const dailyBreakdown = days.map(day => {
+      let dayTotal = 0;
+      let dayCompleted = 0;
+      subjects.forEach(subject => {
+        subject.topics.forEach(topic => {
+          if (topic.day === day) {
+            dayTotal++;
+            if (topic.completed) dayCompleted++;
+          }
+        });
+      });
+      totalSessions += dayTotal;
+      completedSessions += dayCompleted;
+      return { day, completed: dayCompleted, total: dayTotal };
+    }).filter(d => d.total > 0);
+
+    const subjectSummary = subjects.map(subject => {
+      const total = subject.topics.length;
+      const completed = subject.topics.filter(t => t.completed).length;
+      return { name: subject.name, completed, total };
+    });
+
+    const missedSessions = [];
+    subjects.forEach(subject => {
+      subject.topics.forEach(topic => {
+        if (!topic.completed) {
+          missedSessions.push({
+            day: topic.day,
+            subject: subject.name,
+            topic: topic.name,
+            duration: topic.allocatedTime,
+            priority: topic.priority
           });
         }
       });
-      
-      // Only add days that have sessions
-      if (daySessions.length > 0) {
-        scheduleData[day] = {
-          sessions: daySessions,
-          hasConflict: checkForConflicts(day, daySessions)
-        };
-      }
     });
-    
-    return scheduleData;
+
+    const completionPercentage = totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0;
+    return { completionPercentage, dailyBreakdown, subjectSummary, missedSessions };
   };
-  
-  // Functions for day section expansion
-  const toggleDayExpanded = (day) => {
-    setExpandedDays(prev => ({
-      ...prev,
-      [day]: !prev[day]
-    }));
-  };
-  
-  const isDayExpanded = (day) => {
-    return expandedDays[day] === true;
-  };
-  
-  // Get schedule data
-  const scheduleData = generateScheduleData();
-  
+
+  const progressData = computeWeeklyProgress();
+
   return (
     <>
       <Navbar isLoggedIn={true} />
       <Container>
-        <Breadcrumbs>
-          <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-          <BreadcrumbSeparator>›</BreadcrumbSeparator>
-          <BreadcrumbLink href="/study-plan">Study Plan</BreadcrumbLink>
-        </Breadcrumbs>
-        
-        <PageTitle>Your Study Plan</PageTitle>
-        
-        <FeaturesGrid>
-          <FeatureCard>
-            <FeatureIcon>📋</FeatureIcon>
-            <FeatureTitle>Subject Selection</FeatureTitle>
-            <FeatureDescription>Choose subjects to include in your study plan</FeatureDescription>
-            <Button onClick={() => setIsAddSubjectModalOpen(true)}>Add Subject</Button>
-          </FeatureCard>
-          
-          <FeatureCard>
-            <FeatureIcon>📈</FeatureIcon>
-            <FeatureTitle>Weekly Progress</FeatureTitle>
-            <FeatureDescription>You've completed {progressData.completionPercentage}% of your planned sessions this week</FeatureDescription>
-            <Button onClick={() => setExpandedProgress(!expandedProgress)}>
-              {expandedProgress ? 'Hide Details' : 'View Details'}
-            </Button>
-          </FeatureCard>
-          
-          <FeatureCard>
-            <FeatureIcon>📊</FeatureIcon>
-            <FeatureTitle>Study Time Distribution</FeatureTitle>
-            <FeatureDescription>View how your study time is distributed across subjects</FeatureDescription>
-            <div style={{ width: '100%', height: '220px', marginTop: '10px' }}>
-              <StudyTimeDistributionChart subjects={subjects} />
-            </div>
-          </FeatureCard>
-        </FeaturesGrid>
-        
-        {/* Expandable Progress Panel */}
-        <ProgressPanel expanded={expandedProgress}>
-          <ProgressBar>
-            <ProgressFill percentage={progressData.completionPercentage} />
-          </ProgressBar>
-          
-          <ProgressGrid>
-            <ProgressCard>
-              <ProgressCardTitle>Daily Breakdown</ProgressCardTitle>
-              <ProgressList>
-                {progressData.dailyBreakdown.map((day, index) => (
-                  <ProgressListItem key={index}>
-                    <ProgressItemIcon completed={day.completed === day.total}>
-                      {day.completed === day.total ? '✅' : '⏳'}
-                    </ProgressItemIcon>
-                    <ProgressItemText>
-                      {day.day}: {day.completed}/{day.total} sessions completed
-                    </ProgressItemText>
-                  </ProgressListItem>
-                ))}
-              </ProgressList>
-            </ProgressCard>
+        {isLoading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div>Error: {error}</div>
+        ) : (
+          <>
+            <Breadcrumbs>
+              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+              <BreadcrumbSeparator>›</BreadcrumbSeparator>
+              <BreadcrumbLink href="/study-plan">Study Plan</BreadcrumbLink>
+            </Breadcrumbs>
             
-            <ProgressCard>
-              <ProgressCardTitle>Subject Summary</ProgressCardTitle>
-              <ProgressList>
-                {progressData.subjectSummary.map((subject, index) => (
-                  <ProgressListItem key={index}>
-                    <ProgressItemIcon completed={subject.completed === subject.total}>
-                      {subject.completed === subject.total ? '✅' : '⏳'}
-                    </ProgressItemIcon>
-                    <ProgressItemText>
-                      {subject.name}: {subject.completed}/{subject.total} sessions
-                    </ProgressItemText>
-                  </ProgressListItem>
-                ))}
-              </ProgressList>
-            </ProgressCard>
+            <PageTitle>Your Study Plan</PageTitle>
             
-            <ProgressCard>
-              <ProgressCardTitle>Missed/Pending Sessions</ProgressCardTitle>
-              <ProgressList>
-                {progressData.missedSessions.map((session, index) => (
-                  <ProgressListItem key={index}>
-                    <ProgressItemIcon completed={false}>⏳</ProgressItemIcon>
-                    <ProgressItemText>
-                      {session.day}'s {session.subject} - {session.topic}
-                    </ProgressItemText>
-                  </ProgressListItem>
-                ))}
-              </ProgressList>
-            </ProgressCard>
-          </ProgressGrid>
-        </ProgressPanel>
-        
-        <SectionTitle>Active Subjects</SectionTitle>
-        
-        <SubjectTabs>
-          <SubjectTab 
-            active={activeTab === 'all'} 
-            onClick={() => setActiveTab('all')}
-          >
-            All Subjects
-          </SubjectTab>
-          {subjects.map(subject => (
-            <SubjectTab 
-              key={subject.id}
-              active={activeTab === subject.name.toLowerCase()} 
-              onClick={() => setActiveTab(subject.name.toLowerCase())}
-            >
-              {subject.name}
-            </SubjectTab>
-          ))}
-        </SubjectTabs>
-        
-        {filteredSubjects.map(subject => (
-          <div key={subject.id}>
-            <SubjectCard inactive={!subject.active}>
-              <SubjectIcon>{subject.icon}</SubjectIcon>
-              <SubjectContent>
-                <SubjectTitle>{subject.name}</SubjectTitle>
-                <SubjectSessions>
-                  {subject.sessions.length} session{subject.sessions.length !== 1 ? 's' : ''} scheduled this week
-                </SubjectSessions>
-              </SubjectContent>
-              <SubjectActions>
-                <ActionButton 
-                  onClick={() => {
-                    setCurrentSubject(subject);
-                    setIsEditSubjectModalOpen(true);
-                  }}
-                  title="Edit Subject"
-                >
-                  ✏️
-                </ActionButton>
-                <ActionButton 
-                  onClick={() => {
-                    setCurrentSubject(subject);
-                    setIsDeleteSubjectModalOpen(true);
-                  }}
-                  title="Delete Subject"
-                >
-                  🗑️
-                </ActionButton>
-                <Tooltip>
-                  <ToggleSwitch>
-                    <input 
-                      type="checkbox" 
-                      checked={subject.active} 
-                      onChange={() => handleToggleSubject(subject.id)} 
-                    />
-                    <Slider />
-                  </ToggleSwitch>
-                  <TooltipText className="tooltiptext">
-                    Toggle to {subject.active ? 'exclude' : 'include'} this subject from your schedule
-                  </TooltipText>
-                </Tooltip>
-              </SubjectActions>
-            </SubjectCard>
+            <FeaturesGrid>
+              <FeatureCard>
+                <FeatureIcon>📋</FeatureIcon>
+                <FeatureTitle>Subject Selection</FeatureTitle>
+                <FeatureDescription>Choose subjects to include in your study plan</FeatureDescription>
+                <Button onClick={() => setIsAddSubjectModalOpen(true)}>Add Subject</Button>
+              </FeatureCard>
+              
+              <FeatureCard>
+                <FeatureIcon>📈</FeatureIcon>
+                <FeatureTitle>Weekly Progress</FeatureTitle>
+                <FeatureDescription>Track your study progress and completion</FeatureDescription>
+                <Button onClick={() => setExpandedProgress(!expandedProgress)}>
+                  {expandedProgress ? 'Hide Details' : 'View Details'}
+                </Button>
+              </FeatureCard>
+              
+              <FeatureCard>
+                <FeatureIcon>📊</FeatureIcon>
+                <FeatureTitle>Study Time Distribution</FeatureTitle>
+                <FeatureDescription>View how your study time is distributed across subjects</FeatureDescription>
+                <div style={{ width: '100%', height: '220px', marginTop: '10px' }}>
+                  <StudyTimeDistributionChart subjects={subjects} />
+                </div>
+              </FeatureCard>
+            </FeaturesGrid>
             
-            {/* Show individual sessions when a specific subject is selected */}
-            {activeTab !== 'all' && subject.sessions.map(session => (
-              <SessionCard key={session.id}>
-                <SessionContent>
-                  <SessionDay>{session.day}</SessionDay>
-                  <SessionDetails>
-                    <SessionTopic>{session.topic}</SessionTopic>
-                    <SessionInfo>
-                      {session.duration} hours • {session.priority} Priority
-                    </SessionInfo>
-                  </SessionDetails>
-                </SessionContent>
-                <SessionActions>
-                  <Tooltip>
-                    <ToggleSwitch>
-                      <input 
-                        type="checkbox" 
-                        checked={session.completed} 
-                        onChange={() => handleToggleSession(subject.id, session.id)} 
-                      />
-                      <Slider />
-                    </ToggleSwitch>
-                    <TooltipText className="tooltiptext">
-                      Mark as {session.completed ? 'incomplete' : 'completed'}
-                    </TooltipText>
-                  </Tooltip>
-                </SessionActions>
-              </SessionCard>
-            ))}
-          </div>
-        ))}
-        
-        <ScheduleSection>
-          <ScheduleHeader>
-            <SectionTitle>Weekly Study Schedule</SectionTitle>
-          </ScheduleHeader>
-          
-          <ScheduleTable>
-            {Object.entries(scheduleData).map(([day, data]) => (
-              <DaySection key={day}>
-                <DaySectionHeader onClick={() => toggleDayExpanded(day)}>
-                  <DaySectionTitle>
-                    {isDayExpanded(day) ? '▼' : '►'} {day} ({data.sessions.length} sessions)
-                    {data.hasConflict && <ConflictWarning>⚠️ Conflict</ConflictWarning>}
-                  </DaySectionTitle>
-                </DaySectionHeader>
-                
-                {isDayExpanded(day) && (
-                  <DaySectionContent>
-                    {data.sessions.map((session) => (
-                      <SessionRow key={session.id}>
-                        <SessionCheckbox 
-                          type="checkbox" 
-                          checked={session.completed}
-                          onChange={() => handleToggleSession(session.subjectId, session.id)}
-                        />
-                        <SessionSubject>
-                          {session.subject} | {session.duration}h | {session.topic} | 
-                          <PriorityIndicator priority={session.priority}>
-                            {session.priority === 'High' ? '🔴' : 
-                             session.priority === 'Medium' ? '🟡' : '🟢'} {session.priority}
-                          </PriorityIndicator>
-                        </SessionSubject>
-                      </SessionRow>
+            {/* Expandable Weekly Progress Panel */}
+            <ProgressPanel expanded={expandedProgress}>
+              <ProgressBar>
+                <ProgressFill percentage={progressData.completionPercentage} />
+              </ProgressBar>
+              <ProgressGrid>
+                <ProgressCard>
+                  <ProgressCardTitle>Daily Breakdown</ProgressCardTitle>
+                  <ProgressList>
+                    {progressData.dailyBreakdown.map((day, idx) => (
+                      <ProgressListItem key={idx}>
+                        <ProgressItemIcon completed={day.completed === day.total}>
+                          {day.completed === day.total ? '✅' : '⏳'}
+                        </ProgressItemIcon>
+                        <ProgressItemText>
+                          {day.day}: {day.completed}/{day.total} sessions completed
+                        </ProgressItemText>
+                      </ProgressListItem>
                     ))}
-                  </DaySectionContent>
-                )}
-              </DaySection>
-            ))}
+                  </ProgressList>
+                </ProgressCard>
+                <ProgressCard>
+                  <ProgressCardTitle>Subject Summary</ProgressCardTitle>
+                  <ProgressList>
+                    {progressData.subjectSummary.map((subject, idx) => (
+                      <ProgressListItem key={idx}>
+                        <ProgressItemIcon completed={subject.completed === subject.total}>
+                          {subject.completed === subject.total ? '✅' : '⏳'}
+                        </ProgressItemIcon>
+                        <ProgressItemText>
+                          {subject.name}: {subject.completed}/{subject.total} sessions
+                        </ProgressItemText>
+                      </ProgressListItem>
+                    ))}
+                  </ProgressList>
+                </ProgressCard>
+                <ProgressCard>
+                  <ProgressCardTitle>Missed/Pending Sessions</ProgressCardTitle>
+                  <ProgressList>
+                    {progressData.missedSessions.length === 0 && (
+                      <ProgressListItem>
+                        <ProgressItemText>🎉 No missed sessions!</ProgressItemText>
+                      </ProgressListItem>
+                    )}
+                    {progressData.missedSessions.map((session, idx) => (
+                      <ProgressListItem key={idx}>
+                        <ProgressItemIcon completed={false}>⏳</ProgressItemIcon>
+                        <ProgressItemText>
+                          {session.day}'s {session.subject} - {session.topic} ({session.duration}h, {session.priority})
+                        </ProgressItemText>
+                      </ProgressListItem>
+                    ))}
+                  </ProgressList>
+                </ProgressCard>
+              </ProgressGrid>
+            </ProgressPanel>
             
-            {Object.keys(scheduleData).length === 0 && (
-              <EmptySchedule>
-                No sessions scheduled. Add subjects and sessions to see your schedule.
-              </EmptySchedule>
+            <SectionTitle>Active Subjects</SectionTitle>
+            
+            <SubjectTabs>
+              <SubjectTab 
+                active={activeTab === 'all'} 
+                onClick={() => setActiveTab('all')}
+              >
+                All Subjects
+              </SubjectTab>
+              {subjects.map(subject => (
+                <SubjectTab 
+                  key={subject._id}
+                  active={activeTab === subject.name.toLowerCase()} 
+                  onClick={() => setActiveTab(subject.name.toLowerCase())}
+                >
+                  {subject.name}
+                </SubjectTab>
+              ))}
+            </SubjectTabs>
+            
+            {filteredSubjects.map(subject => {
+              return (
+                <div key={subject._id}>
+                  <SubjectCard inactive={!subject.active}>
+                    <SubjectIcon>{getSubjectIcon(subject.name)}</SubjectIcon>
+                    <SubjectContent>
+                      <SubjectTitle>{subject.name}</SubjectTitle>
+                      <SubjectSessions>
+                        {subject.topics.length} topic{subject.topics.length !== 1 ? 's' : ''} scheduled
+                      </SubjectSessions>
+                    </SubjectContent>
+                    <SubjectActions>
+                      <ActionButton 
+                        onClick={() => {
+                          setCurrentSubject(subject);
+                          setIsEditSubjectModalOpen(true);
+                        }}
+                        title="Edit Subject"
+                      >
+                        ✏️
+                      </ActionButton>
+                      <ActionButton 
+                        onClick={() => {
+                          setCurrentSubject(subject);
+                          setIsDeleteSubjectModalOpen(true);
+                        }}
+                        title="Delete Subject"
+                      >
+                        🗑️
+                      </ActionButton>
+                    </SubjectActions>
+                  </SubjectCard>
+                </div>
+              );
+            })}
+          </>
+        )}
+        <SectionTitle>Weekly Study Schedule</SectionTitle>
+        {Object.keys(scheduleByDay).length === 0 && (
+          <EmptySchedule>No sessions scheduled. Add subjects and topics to see your schedule.</EmptySchedule>
+        )}
+        {Object.entries(scheduleByDay).map(([day, sessions]) => (
+          <DaySection key={day}>
+            <DaySectionHeader onClick={() => toggleDayExpanded(day)}>
+              <DaySectionTitle>
+                {isDayExpanded(day) ? '▼' : '►'} {day} ({sessions.length} session{sessions.length !== 1 ? 's' : ''})
+              </DaySectionTitle>
+            </DaySectionHeader>
+            {isDayExpanded(day) && (
+              <DaySectionContent>
+                {sessions.map(session => (
+                  <SessionRow key={session._id}>
+                    <SessionCheckbox
+                      type="checkbox"
+                      checked={session.completed}
+                      onChange={() => handleToggleSession(session.subjectId, session._id)}
+                    />
+                    <SessionSubject>
+                      {session.subjectName} | {session.allocatedTime}h | {session.name} |{' '}
+                      <PriorityIndicator priority={session.priority}>
+                        {session.priority === 'High' ? '🔴' : session.priority === 'Medium' ? '🟡' : '🟢'} {session.priority}
+                      </PriorityIndicator>
+                    </SessionSubject>
+                  </SessionRow>
+                ))}
+              </DaySectionContent>
             )}
-          </ScheduleTable>
-        </ScheduleSection>
-        
-        <RecommendationsSection>
-          <SectionTitle>AI Study Recommendations</SectionTitle>
-          
-          <RecommendationCard>
-            <RecommendationIcon>🔄</RecommendationIcon>
-            <RecommendationContent>
-              <RecommendationTitle>Spaced Repetition</RecommendationTitle>
-              <RecommendationDescription>
-                Based on your learning patterns, we recommend reviewing calculus concepts every 3 days to improve retention.
-              </RecommendationDescription>
-            </RecommendationContent>
-          </RecommendationCard>
-          
-          <RecommendationCard>
-            <RecommendationIcon>⏱️</RecommendationIcon>
-            <RecommendationContent>
-              <RecommendationTitle>Focus Time</RecommendationTitle>
-              <RecommendationDescription>
-                Your productivity peaks in the morning. Consider scheduling difficult subjects like Physics before noon.
-              </RecommendationDescription>
-            </RecommendationContent>
-          </RecommendationCard>
-        </RecommendationsSection>
+          </DaySection>
+        ))}
       </Container>
       
       {/* Modals */}
       <AddSubjectModal 
         isOpen={isAddSubjectModalOpen} 
         onClose={() => setIsAddSubjectModalOpen(false)} 
-        onSubmit={handleAddSubject}
-        existingSubjects={subjects}
+        onAddSubject={handleAddSubject}
       />
       
       <EditSubjectModal 
         isOpen={isEditSubjectModalOpen} 
         onClose={() => setIsEditSubjectModalOpen(false)} 
         subject={currentSubject} 
-        onSubmit={handleEditSubject} 
+        onEditSubject={handleEditSubject} 
       />
       
       <DeleteSubjectModal 
@@ -1115,11 +861,10 @@ const StudyPlan = () => {
       <WeeklyProgressModal 
         isOpen={isWeeklyProgressModalOpen} 
         onClose={() => setIsWeeklyProgressModalOpen(false)} 
-        progressData={progressData} 
+        subjects={subjects}
       />
     </>
   );
 };
 
 export default StudyPlan;
-
