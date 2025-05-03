@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 
 const ModalOverlay = styled.div`
@@ -9,20 +9,18 @@ const ModalOverlay = styled.div`
   bottom: 0;
   background-color: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   z-index: 1000;
 `;
 
 const ModalContainer = styled.div`
-  background-color: white;
-  border-radius: 8px;
+  background: white;
   padding: 2rem;
+  border-radius: 8px;
   width: 90%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 `;
 
 const ModalHeader = styled.div`
@@ -33,10 +31,8 @@ const ModalHeader = styled.div`
 `;
 
 const ModalTitle = styled.h2`
-  font-size: 1.4rem;
-  font-weight: 600;
-  color: #333;
   margin: 0;
+  color: #333;
 `;
 
 const CloseButton = styled.button`
@@ -52,281 +48,213 @@ const CloseButton = styled.button`
 `;
 
 const FormGroup = styled.div`
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 `;
 
 const Label = styled.label`
   display: block;
-  font-size: 0.9rem;
-  font-weight: 500;
   margin-bottom: 0.5rem;
   color: #333;
+  font-weight: 500;
 `;
 
 const Input = styled.input`
-  width: 100%;
-  padding: 0.75rem;
-  border: 1px solid ${props => props.error ? '#e74c3c' : '#ddd'};
+  width: ${props => props.fullWidth ? '100%' : 'auto'};
+  padding: 0.5rem;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem;
+  font-size: 1rem;
   
   &:focus {
     outline: none;
-    border-color: #6c5ce7;
-    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+    border-color: #4a90e2;
   }
 `;
 
-const Select = styled.select`
+const TextArea = styled.textarea`
   width: 100%;
-  padding: 0.75rem;
-  border: 1px solid ${props => props.error ? '#e74c3c' : '#ddd'};
+  padding: 0.5rem;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 0.9rem;
-  background-color: white;
+  font-size: 1rem;
+  min-height: 100px;
+  resize: vertical;
   
   &:focus {
     outline: none;
-    border-color: #6c5ce7;
-    box-shadow: 0 0 0 2px rgba(108, 92, 231, 0.1);
+    border-color: #4a90e2;
   }
-`;
-
-const ErrorText = styled.div`
-  color: #e74c3c;
-  font-size: 0.8rem;
-  margin-top: 0.25rem;
-`;
-
-const SessionContainer = styled.div`
-  background-color: #f8f9ff;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-`;
-
-const SessionHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
-`;
-
-const SessionTitle = styled.h3`
-  font-size: 1rem;
-  font-weight: 500;
-  margin: 0;
-`;
-
-const DeleteButton = styled.button`
-  background: none;
-  border: none;
-  color: #e74c3c;
-  cursor: pointer;
-  font-size: 1rem;
-  
-  &:hover {
-    color: #c0392b;
-  }
-`;
-
-const ButtonGroup = styled.div`
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2rem;
 `;
 
 const Button = styled.button`
-  background-color: ${props => props.secondary ? 'transparent' : '#6c5ce7'};
-  color: ${props => props.secondary ? '#6c5ce7' : 'white'};
-  border: ${props => props.secondary ? '1px solid #6c5ce7' : 'none'};
+  background-color: #6c5ce7;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
-  padding: 0.75rem 1.5rem;
-  font-size: 0.9rem;
-  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 1rem;
+  margin-right: 0.5rem;
   
   &:hover {
-    background-color: ${props => props.secondary ? '#f0f0ff' : '#5a4ad1'};
+    background-color: #5a4ad1;
   }
   
   &:disabled {
-    background-color: ${props => props.secondary ? 'transparent' : '#a8a8a8'};
-    color: ${props => props.secondary ? '#a8a8a8' : 'white'};
-    border-color: ${props => props.secondary ? '#a8a8a8' : 'transparent'};
+    background-color: #ccc;
     cursor: not-allowed;
   }
 `;
 
-const AddSessionButton = styled.button`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  padding: 0.75rem;
-  background-color: #f0f0ff;
-  border: 1px dashed #6c5ce7;
-  border-radius: 4px;
-  color: #6c5ce7;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  margin-bottom: 1.5rem;
+const CancelButton = styled(Button)`
+  background-color: #f5f5f5;
+  color: #333;
   
   &:hover {
-    background-color: #e6e6ff;
+    background-color: #e0e0e0;
   }
 `;
 
-const ConfirmationText = styled.p`
+const TopicList = styled.div`
+  margin-top: 1rem;
+`;
+
+const TopicItem = styled.div`
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  background: transparent;
+`;
+
+const RemoveTopicButton = styled.button`
+  background: none;
+  border: none;
+  color: #ff4444;
+  cursor: pointer;
+  margin-left: 0.5rem;
+  font-size: 1.2rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  &:hover {
+    color: #cc0000;
+    background: #ffeaea;
+  }
+`;
+
+const Select = styled.select`
+  width: auto;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
   font-size: 1rem;
-  line-height: 1.5;
-  margin-bottom: 2rem;
+  margin-left: 0.5rem;
+  background: white;
   color: #333;
+  &:focus {
+    outline: none;
+    border-color: #4a90e2;
+  }
 `;
 
 // Add Subject Modal
-export const AddSubjectModal = ({ isOpen, onClose, onSubmit, existingSubjects = [] }) => {
+export const AddSubjectModal = ({ isOpen, onClose, onAddSubject }) => {
   const [subjectName, setSubjectName] = useState('');
-  const [sessions, setSessions] = useState([
-    { id: 1, day: 'Monday', duration: '1', topic: '', priority: 'Medium', completed: false }
-  ]);
-  const [errors, setErrors] = useState({});
-  
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!subjectName.trim()) {
-      newErrors.subjectName = 'Subject name is required';
-    } else {
-      // Check for duplicate subject names
-      const isDuplicate = existingSubjects.some(
-        subject => subject.name.toLowerCase() === subjectName.trim().toLowerCase()
-      );
-      
-      if (isDuplicate) {
-        newErrors.subjectName = 'A subject with this name already exists';
-      }
-    }
-    
-    const sessionErrors = [];
-    sessions.forEach((session, index) => {
-      const sessionError = {};
-      
-      if (!session.duration) {
-        sessionError.duration = 'Duration is required';
-      } else if (isNaN(session.duration) || parseFloat(session.duration) <= 0) {
-        sessionError.duration = 'Duration must be a positive number';
-      }
-      
-      if (!session.topic.trim()) {
-        sessionError.topic = 'Topic is required';
-      }
-      
-      if (Object.keys(sessionError).length > 0) {
-        sessionErrors[index] = sessionError;
-      }
-    });
-    
-    if (sessionErrors.length > 0) {
-      newErrors.sessions = sessionErrors;
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  const handleAddSession = () => {
-    setSessions([
-      ...sessions,
-      {
-        id: Date.now(),
-        day: 'Monday',
-        duration: '1',
-        topic: '',
-        priority: 'Medium'
-      }
-    ]);
-  };
-  
-  const handleRemoveSession = (id) => {
-    if (sessions.length > 1) {
-      setSessions(sessions.filter(session => session.id !== id));
-    }
-  };
-  
-  const handleSessionChange = (id, field, value) => {
-    setSessions(sessions.map(session => 
-      session.id === id ? { ...session, [field]: value } : session
-    ));
-  };
-  
+  const [topics, setTopics] = useState([{ name: '', allocatedTime: '', day: 'Monday', priority: 'Medium' }]);
+  const [totalAllocatedTime, setTotalAllocatedTime] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (validateForm()) {
-      onSubmit({
-        name: subjectName,
-        sessions: sessions
-      });
-      
-      // Reset form
-      setSubjectName('');
-      setSessions([
-        { id: 1, day: 'Monday', duration: '1', topic: '', priority: 'Medium' }
-      ]);
-      setErrors({});
-      
-      onClose();
-    }
+    const newSubject = {
+      name: subjectName,
+      topics: topics.map(topic => ({
+        name: topic.name,
+        allocatedTime: parseFloat(topic.allocatedTime),
+        day: topic.day || 'Monday',
+        priority: topic.priority || 'Medium',
+        completed: false
+      })),
+      active: true
+    };
+    
+    onAddSubject(newSubject);
+    onClose();
   };
-  
+
+  const handleTopicChange = (index, field, value) => {
+    const updatedTopics = [...topics];
+    updatedTopics[index] = {
+      ...updatedTopics[index],
+      [field]: value
+    };
+    setTopics(updatedTopics);
+  };
+
+  const addTopic = () => {
+    setTopics([...topics, { name: '', allocatedTime: '', day: 'Monday', priority: 'Medium' }]);
+  };
+
+  const removeTopic = (index) => {
+    const updatedTopics = topics.filter((_, i) => i !== index);
+    setTopics(updatedTopics);
+  };
+
   if (!isOpen) return null;
-  
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContainer onClick={e => e.stopPropagation()}>
+    <ModalOverlay>
+      <ModalContainer>
         <ModalHeader>
           <ModalTitle>Add New Subject</ModalTitle>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
+          <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         
         <form onSubmit={handleSubmit}>
           <FormGroup>
-            <Label htmlFor="subjectName">Subject Name</Label>
+            <Label>Subject Name</Label>
             <Input
-              id="subjectName"
               type="text"
               value={subjectName}
-              onChange={e => setSubjectName(e.target.value)}
-              error={errors.subjectName}
+              onChange={(e) => setSubjectName(e.target.value)}
+              required
             />
-            {errors.subjectName && <ErrorText>{errors.subjectName}</ErrorText>}
           </FormGroup>
           
-          <Label>Sessions</Label>
-          
-          {sessions.map((session, index) => (
-            <SessionContainer key={session.id}>
-              <SessionHeader>
-                <SessionTitle>Session {index + 1}</SessionTitle>
-                {sessions.length > 1 && (
-                  <DeleteButton 
-                    type="button" 
-                    onClick={() => handleRemoveSession(session.id)}
-                  >
-                    &times;
-                  </DeleteButton>
-                )}
-              </SessionHeader>
-              
-              <FormGroup>
-                <Label htmlFor={`day-${session.id}`}>Day</Label>
+          <FormGroup>
+            <Label>Topics</Label>
+            {topics.map((topic, index) => (
+              <TopicItem key={index}>
+                <Input
+                  type="text"
+                  placeholder="Topic name"
+                  value={topic.name}
+                  onChange={(e) => handleTopicChange(index, 'name', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
+                />
+                <Input
+                  type="number"
+                  placeholder="Hours"
+                  value={topic.allocatedTime}
+                  onChange={(e) => handleTopicChange(index, 'allocatedTime', e.target.value)}
+                  required
+                  min="0"
+                  step="0.5"
+                  style={{ width: '60px' }}
+                />
                 <Select
-                  id={`day-${session.id}`}
-                  value={session.day}
-                  onChange={e => handleSessionChange(session.id, 'day', e.target.value)}
+                  value={topic.day}
+                  onChange={e => handleTopicChange(index, 'day', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
                 >
                   <option value="Monday">Monday</option>
                   <option value="Tuesday">Tuesday</option>
@@ -336,65 +264,36 @@ export const AddSubjectModal = ({ isOpen, onClose, onSubmit, existingSubjects = 
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
                 </Select>
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`duration-${session.id}`}>Duration (hours)</Label>
-                <Input
-                  id={`duration-${session.id}`}
-                  type="number"
-                  min="0.5"
-                  step="0.5"
-                  value={session.duration}
-                  onChange={e => handleSessionChange(session.id, 'duration', e.target.value)}
-                  error={errors.sessions && errors.sessions[index] && errors.sessions[index].duration}
-                />
-                {errors.sessions && errors.sessions[index] && errors.sessions[index].duration && (
-                  <ErrorText>{errors.sessions[index].duration}</ErrorText>
-                )}
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`topic-${session.id}`}>Topic</Label>
-                <Input
-                  id={`topic-${session.id}`}
-                  type="text"
-                  value={session.topic}
-                  onChange={e => handleSessionChange(session.id, 'topic', e.target.value)}
-                  error={errors.sessions && errors.sessions[index] && errors.sessions[index].topic}
-                />
-                {errors.sessions && errors.sessions[index] && errors.sessions[index].topic && (
-                  <ErrorText>{errors.sessions[index].topic}</ErrorText>
-                )}
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`priority-${session.id}`}>Priority</Label>
                 <Select
-                  id={`priority-${session.id}`}
-                  value={session.priority}
-                  onChange={e => handleSessionChange(session.id, 'priority', e.target.value)}
+                  value={topic.priority}
+                  onChange={e => handleTopicChange(index, 'priority', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
                 >
-                  <option value="High">High Priority</option>
-                  <option value="Medium">Medium Priority</option>
-                  <option value="Low">Low Priority</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </Select>
-              </FormGroup>
-            </SessionContainer>
-          ))}
-          
-          <AddSessionButton type="button" onClick={handleAddSession}>
-            + Add Session
-          </AddSessionButton>
-          
-          <ButtonGroup>
-            <Button type="button" secondary onClick={onClose}>
-              Cancel
+                {topics.length > 1 && (
+                  <RemoveTopicButton onClick={() => removeTopic(index)}>
+                    ×
+                  </RemoveTopicButton>
+                )}
+              </TopicItem>
+            ))}
+            <Button type="button" onClick={addTopic}>
+              Add Topic
             </Button>
+          </FormGroup>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <CancelButton type="button" onClick={onClose}>
+              Cancel
+            </CancelButton>
             <Button type="submit">
               Add Subject
             </Button>
-          </ButtonGroup>
+          </div>
         </form>
       </ModalContainer>
     </ModalOverlay>
@@ -402,139 +301,103 @@ export const AddSubjectModal = ({ isOpen, onClose, onSubmit, existingSubjects = 
 };
 
 // Edit Subject Modal
-export const EditSubjectModal = ({ isOpen, onClose, subject, onSubmit }) => {
-  const [subjectName, setSubjectName] = useState(subject ? subject.name : '');
-  const [sessions, setSessions] = useState(
-    subject ? subject.sessions : [{ id: 1, day: 'Monday', duration: '1', topic: '', priority: 'Medium' }]
-  );
-  const [errors, setErrors] = useState({});
-  
-  // Update state when subject prop changes
-  React.useEffect(() => {
+export const EditSubjectModal = ({ isOpen, onClose, subject, onEditSubject }) => {
+  const [subjectName, setSubjectName] = useState('');
+  const [topics, setTopics] = useState([]);
+
+  useEffect(() => {
     if (subject) {
       setSubjectName(subject.name);
-      setSessions(subject.sessions);
+      setTopics(subject.topics.map(t => ({
+        ...t,
+        day: t.day || 'Monday',
+        priority: t.priority || 'Medium',
+      })));
     }
   }, [subject]);
-  
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!subjectName.trim()) {
-      newErrors.subjectName = 'Subject name is required';
-    }
-    
-    const sessionErrors = [];
-    sessions.forEach((session, index) => {
-      const sessionError = {};
-      
-      if (!session.duration) {
-        sessionError.duration = 'Duration is required';
-      } else if (isNaN(session.duration) || parseFloat(session.duration) <= 0) {
-        sessionError.duration = 'Duration must be a positive number';
-      }
-      
-      if (!session.topic.trim()) {
-        sessionError.topic = 'Topic is required';
-      }
-      
-      if (Object.keys(sessionError).length > 0) {
-        sessionErrors[index] = sessionError;
-      }
-    });
-    
-    if (sessionErrors.length > 0) {
-      newErrors.sessions = sessionErrors;
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-  
-  const handleAddSession = () => {
-    setSessions([
-      ...sessions,
-      {
-        id: Date.now(),
-        day: 'Monday',
-        duration: '1',
-        topic: '',
-        priority: 'Medium'
-      }
-    ]);
-  };
-  
-  const handleRemoveSession = (id) => {
-    if (sessions.length > 1) {
-      setSessions(sessions.filter(session => session.id !== id));
-    }
-  };
-  
-  const handleSessionChange = (id, field, value) => {
-    setSessions(sessions.map(session => 
-      session.id === id ? { ...session, [field]: value } : session
-    ));
-  };
-  
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit({
-        id: subject.id,
-        name: subjectName,
-        sessions: sessions
-      });
-      
-      onClose();
-    }
+    const updatedSubject = {
+      ...subject,
+      name: subjectName,
+      topics: topics.map(topic => ({
+        ...topic,
+        allocatedTime: parseFloat(topic.allocatedTime),
+        day: topic.day || 'Monday',
+        priority: topic.priority || 'Medium',
+      }))
+    };
+    onEditSubject(updatedSubject);
+    onClose();
   };
-  
+
+  const handleTopicChange = (index, field, value) => {
+    const updatedTopics = [...topics];
+    updatedTopics[index] = {
+      ...updatedTopics[index],
+      [field]: value
+    };
+    setTopics(updatedTopics);
+  };
+
+  const addTopic = () => {
+    setTopics([...topics, { name: '', allocatedTime: '', day: 'Monday', priority: 'Medium', completed: false }]);
+  };
+
+  const removeTopic = (index) => {
+    const updatedTopics = topics.filter((_, i) => i !== index);
+    setTopics(updatedTopics);
+  };
+
   if (!isOpen || !subject) return null;
-  
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContainer onClick={e => e.stopPropagation()}>
+    <ModalOverlay>
+      <ModalContainer>
         <ModalHeader>
           <ModalTitle>Edit Subject</ModalTitle>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
+          <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         
         <form onSubmit={handleSubmit}>
           <FormGroup>
-            <Label htmlFor="subjectName">Subject Name</Label>
+            <Label>Subject Name</Label>
             <Input
-              id="subjectName"
               type="text"
               value={subjectName}
-              onChange={e => setSubjectName(e.target.value)}
-              error={errors.subjectName}
+              onChange={(e) => setSubjectName(e.target.value)}
+              required
             />
-            {errors.subjectName && <ErrorText>{errors.subjectName}</ErrorText>}
           </FormGroup>
           
-          <Label>Sessions</Label>
-          
-          {sessions.map((session, index) => (
-            <SessionContainer key={session.id}>
-              <SessionHeader>
-                <SessionTitle>Session {index + 1}</SessionTitle>
-                {sessions.length > 1 && (
-                  <DeleteButton 
-                    type="button" 
-                    onClick={() => handleRemoveSession(session.id)}
-                  >
-                    &times;
-                  </DeleteButton>
-                )}
-              </SessionHeader>
-              
-              <FormGroup>
-                <Label htmlFor={`day-${session.id}`}>Day</Label>
+          <FormGroup>
+            <Label>Topics</Label>
+            {topics.map((topic, index) => (
+              <TopicItem key={index}>
+                <Input
+                  type="text"
+                  placeholder="Topic name"
+                  value={topic.name}
+                  onChange={(e) => handleTopicChange(index, 'name', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
+                />
+                <Input
+                  type="number"
+                  placeholder="Hours"
+                  value={topic.allocatedTime}
+                  onChange={(e) => handleTopicChange(index, 'allocatedTime', e.target.value)}
+                  required
+                  min="0"
+                  step="0.5"
+                  style={{ width: '60px' }}
+                />
                 <Select
-                  id={`day-${session.id}`}
-                  value={session.day}
-                  onChange={e => handleSessionChange(session.id, 'day', e.target.value)}
+                  value={topic.day}
+                  onChange={e => handleTopicChange(index, 'day', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
                 >
                   <option value="Monday">Monday</option>
                   <option value="Tuesday">Tuesday</option>
@@ -544,170 +407,151 @@ export const EditSubjectModal = ({ isOpen, onClose, subject, onSubmit }) => {
                   <option value="Saturday">Saturday</option>
                   <option value="Sunday">Sunday</option>
                 </Select>
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`duration-${session.id}`}>Duration (hours)</Label>
-                <Input
-                  id={`duration-${session.id}`}
-                  type="number"
-                  min="0.5"
-                  step="0.5"
-                  value={session.duration}
-                  onChange={e => handleSessionChange(session.id, 'duration', e.target.value)}
-                  error={errors.sessions && errors.sessions[index] && errors.sessions[index].duration}
-                />
-                {errors.sessions && errors.sessions[index] && errors.sessions[index].duration && (
-                  <ErrorText>{errors.sessions[index].duration}</ErrorText>
-                )}
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`topic-${session.id}`}>Topic</Label>
-                <Input
-                  id={`topic-${session.id}`}
-                  type="text"
-                  value={session.topic}
-                  onChange={e => handleSessionChange(session.id, 'topic', e.target.value)}
-                  error={errors.sessions && errors.sessions[index] && errors.sessions[index].topic}
-                />
-                {errors.sessions && errors.sessions[index] && errors.sessions[index].topic && (
-                  <ErrorText>{errors.sessions[index].topic}</ErrorText>
-                )}
-              </FormGroup>
-              
-              <FormGroup>
-                <Label htmlFor={`priority-${session.id}`}>Priority</Label>
                 <Select
-                  id={`priority-${session.id}`}
-                  value={session.priority}
-                  onChange={e => handleSessionChange(session.id, 'priority', e.target.value)}
+                  value={topic.priority}
+                  onChange={e => handleTopicChange(index, 'priority', e.target.value)}
+                  required
+                  style={{ minWidth: '100px', flex: '1 1 100px' }}
                 >
-                  <option value="High">High Priority</option>
-                  <option value="Medium">Medium Priority</option>
-                  <option value="Low">Low Priority</option>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </Select>
-              </FormGroup>
-            </SessionContainer>
-          ))}
-          
-          <AddSessionButton type="button" onClick={handleAddSession}>
-            + Add Session
-          </AddSessionButton>
-          
-          <ButtonGroup>
-            <Button type="button" secondary onClick={onClose}>
-              Cancel
+                {topics.length > 1 && (
+                  <RemoveTopicButton onClick={() => removeTopic(index)}>
+                    ×
+                  </RemoveTopicButton>
+                )}
+              </TopicItem>
+            ))}
+            <Button type="button" onClick={addTopic}>
+              Add Topic
             </Button>
+          </FormGroup>
+          
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <CancelButton type="button" onClick={onClose}>
+              Cancel
+            </CancelButton>
             <Button type="submit">
               Save Changes
             </Button>
-          </ButtonGroup>
+          </div>
         </form>
       </ModalContainer>
     </ModalOverlay>
   );
 };
 
-// Delete Subject Confirmation Modal
+// Delete Subject Modal
 export const DeleteSubjectModal = ({ isOpen, onClose, subject, onConfirm }) => {
   if (!isOpen || !subject) return null;
-  
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContainer onClick={e => e.stopPropagation()}>
+    <ModalOverlay>
+      <ModalContainer>
         <ModalHeader>
           <ModalTitle>Delete Subject</ModalTitle>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
+          <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         
-        <ConfirmationText>
-          Are you sure you want to delete <strong>{subject.name}</strong>? This action cannot be undone.
-        </ConfirmationText>
+        <p>Are you sure you want to delete "{subject.name}"? This action cannot be undone.</p>
         
-        <ButtonGroup>
-          <Button type="button" secondary onClick={onClose}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <CancelButton onClick={onClose}>
             Cancel
-          </Button>
+          </CancelButton>
           <Button 
-            type="button" 
-            style={{ backgroundColor: '#e74c3c', borderColor: '#e74c3c' }}
             onClick={() => {
-              onConfirm(subject.id);
+              onConfirm(subject._id);
               onClose();
             }}
+            style={{ backgroundColor: '#ff4444' }}
           >
             Delete
           </Button>
-        </ButtonGroup>
+        </div>
       </ModalContainer>
     </ModalOverlay>
   );
 };
 
-// Weekly Progress Details Modal
-export const WeeklyProgressModal = ({ isOpen, onClose, progressData }) => {
-  if (!isOpen || !progressData) return null;
-  
+// Weekly Progress Modal
+export const WeeklyProgressModal = ({ isOpen, onClose, subjects }) => {
+  if (!isOpen) return null;
+
+  // Calculate progress data
+  const totalTopics = subjects.reduce((sum, subject) => sum + subject.topics.length, 0);
+  const completedTopics = subjects.reduce((sum, subject) => 
+    sum + subject.topics.filter(topic => topic.completed).length, 0
+  );
+  const completionPercentage = totalTopics > 0 
+    ? Math.round((completedTopics / totalTopics) * 100) 
+    : 0;
+
   return (
-    <ModalOverlay onClick={onClose}>
-      <ModalContainer onClick={e => e.stopPropagation()}>
+    <ModalOverlay>
+      <ModalContainer>
         <ModalHeader>
-          <ModalTitle>Weekly Progress Details</ModalTitle>
-          <CloseButton onClick={onClose}>&times;</CloseButton>
+          <ModalTitle>Weekly Progress</ModalTitle>
+          <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
         
-        <div>
-          <h3>Overall Progress</h3>
+        <div style={{ marginBottom: '1rem' }}>
+          <h3>Overall Progress: {completionPercentage}%</h3>
           <div style={{ 
+            width: '100%', 
             height: '20px', 
-            backgroundColor: '#eee', 
+            backgroundColor: '#f0f0f0', 
             borderRadius: '10px',
-            overflow: 'hidden',
-            marginBottom: '1rem'
+            marginTop: '0.5rem'
           }}>
             <div style={{ 
+              width: `${completionPercentage}%`, 
               height: '100%', 
-              width: `${progressData.completionPercentage}%`, 
-              backgroundColor: '#6c5ce7',
+              backgroundColor: '#4a90e2',
               borderRadius: '10px'
             }} />
           </div>
-          <p>{progressData.completionPercentage}% of planned sessions completed</p>
-          
-          <h3>Daily Breakdown</h3>
-          <ul style={{ paddingLeft: '1.5rem' }}>
-            {progressData.dailyBreakdown.map((day, index) => (
-              <li key={index}>
-                <strong>{day.day}:</strong> {day.completed}/{day.total} sessions completed
-              </li>
-            ))}
-          </ul>
-          
-          <h3>Subject Summary</h3>
-          <ul style={{ paddingLeft: '1.5rem' }}>
-            {progressData.subjectSummary.map((subject, index) => (
-              <li key={index}>
-                <strong>{subject.name}:</strong> {subject.completed}/{subject.total} sessions
-              </li>
-            ))}
-          </ul>
-          
-          <h3>Missed/Pending Sessions</h3>
-          <ul style={{ paddingLeft: '1.5rem' }}>
-            {progressData.missedSessions.map((session, index) => (
-              <li key={index}>
-                <strong>{session.day}:</strong> {session.subject} - {session.topic} ({session.duration} hours)
-              </li>
-            ))}
-          </ul>
         </div>
         
-        <ButtonGroup>
-          <Button type="button" onClick={onClose}>
+        <div>
+          <h3>Subject Progress</h3>
+          {subjects.map(subject => {
+            const completed = subject.topics.filter(topic => topic.completed).length;
+            const total = subject.topics.length;
+            const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+            
+            return (
+              <div key={subject._id} style={{ marginBottom: '1rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{subject.name}</span>
+                  <span>{percentage}%</span>
+                </div>
+                <div style={{ 
+                  width: '100%', 
+                  height: '10px', 
+                  backgroundColor: '#f0f0f0', 
+                  borderRadius: '5px',
+                  marginTop: '0.25rem'
+                }}>
+                  <div style={{ 
+                    width: `${percentage}%`, 
+                    height: '100%', 
+                    backgroundColor: '#4a90e2',
+                    borderRadius: '5px'
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <Button onClick={onClose}>
             Close
           </Button>
-        </ButtonGroup>
+        </div>
       </ModalContainer>
     </ModalOverlay>
   );
