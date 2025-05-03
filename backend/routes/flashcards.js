@@ -1,7 +1,11 @@
-const router = require("express").Router();
-const FlashcardDeck = require("../models/FlashcardDeck");
-const Flashcard = require("../models/Flashcard");
+const router = require('express').Router();
+const FlashcardDeck = require('../models/FlashcardDeck');
+const Flashcard = require('../models/Flashcard');
+const OpenAI = require('openai');
 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
 // --- Flashcard Deck Routes ---
 
 // GET all decks
@@ -53,6 +57,46 @@ router.route("/decks/:id").put((req, res) => {
 });
 
 // --- Flashcard Routes ---
+
+// Add this to your flashcard routes
+router.post('/decks/generate', async (req, res) => {
+  try {
+    const { name, topic, numCards } = req.body;
+    
+    // Create the deck first
+    const newDeck = new FlashcardDeck({
+      name,
+      description: `AI-generated deck about ${topic}`
+    });
+    const savedDeck = await newDeck.save();
+
+    // Generate flashcards with AI
+    const prompt = `Generate ${numCards} flashcards about ${topic}. Format as JSON array:
+    [{"front":"question","back":"answer"}]`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    });
+
+    const cards = JSON.parse(completion.choices[0].message.content);
+    
+    // Save generated cards
+    const flashcards = cards.map(card => ({
+      deckId: savedDeck._id,
+      front: card.front,
+      back: card.back
+    }));
+
+    await Flashcard.insertMany(flashcards);
+
+    res.status(201).json(savedDeck);
+  } catch (err) {
+    console.error("AI Generation Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // GET all cards for a specific deck
 router.route("/cards/:deckId").get((req, res) => {

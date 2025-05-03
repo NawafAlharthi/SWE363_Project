@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 export const Container = styled.div`
+  font-family: 'Inter', sans-serif;
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
@@ -31,23 +32,124 @@ export const BreadcrumbSeparator = styled.span`
 export const PageTitle = styled.h1`
   font-size: 1.8rem;
   font-weight: 600;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
   color: #333;
 `;
 
-export const Button = styled.button`
-  background-color: ${props => props.secondary ? 'white' : '#6c5ce7'};
-  color: ${props => props.secondary ? '#6c5ce7' : 'white'};
-  border: 1px solid #6c5ce7;
-  padding: 0.5rem 1rem;
+export const FlashcardProgress = styled.div`
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 2rem;
+`;
+
+export const FlashcardControls = styled.div`
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    gap: 1rem;
+  }
+`;
+
+export const ControlButton = styled.button`
+  background-color: #f0f0f0;
+  color: #333;
+  border: none;
   border-radius: 4px;
-  font-size: 1rem;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  margin-right: 1rem;
-  margin-bottom: 1rem;
+  transition: all 0.2s ease;
   
   &:hover {
-    background-color: ${props => props.secondary ? '#f8f9ff' : '#5a4ad1'};
+    background-color: #e0e0e0;
+  }
+`;
+
+export const FlashcardContainer = styled.div`
+  perspective: 1000px;
+  margin-bottom: 2rem;
+`;
+
+export const FlashcardInner = styled.div`
+  position: relative;
+  width: 100%;
+  height: 300px;
+  text-align: center;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+  transform: ${props => props.flipped ? 'rotateY(180deg)' : 'rotateY(0deg)'};
+  
+  @media (max-width: 768px) {
+    height: 250px;
+  }
+`;
+
+export const FlashcardSide = styled.div`
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+`;
+
+export const FlashcardFront = styled(FlashcardSide)`
+  background-color: #f8f9ff;
+`;
+
+export const FlashcardBack = styled(FlashcardSide)`
+  background-color: #f0f0ff;
+  transform: rotateY(180deg);
+`;
+
+export const FlashcardQuestion = styled.div`
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+`;
+
+export const FlashcardHint = styled.div`
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+`;
+
+export const FlashcardAnswer = styled.div`
+  font-size: 1.2rem;
+  color: #333;
+  line-height: 1.6;
+`;
+
+export const FlashcardNavigation = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3rem;
+`;
+
+export const NavButton = styled.button`
+  background-color: ${props => props.primary ? '#6c5ce7' : '#f0f0f0'};
+  color: ${props => props.primary ? 'white' : '#333'};
+  border: none;
+  border-radius: 4px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: ${props => props.primary ? '#5a4ad1' : '#e0e0e0'};
   }
   
   &:disabled {
@@ -56,166 +158,188 @@ export const Button = styled.button`
   }
 `;
 
-export const DeckGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-top: 2rem;
+export const CardCounter = styled.div`
+  font-size: 0.9rem;
+  color: #666;
 `;
 
-export const DeckCard = styled.div`
-  background-color: #f8f9ff;
-  border-radius: 8px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: transform 0.2s;
+export const SelfAssessmentSection = styled.div`
+  margin-bottom: 3rem;
+`;
+
+export const SectionTitle = styled.h2`
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: #333;
+`;
+
+export const AssessmentButtons = styled.div`
+  display: flex;
+  gap: 1rem;
   
-  &:hover {
-    transform: translateY(-2px);
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
   }
 `;
 
-export const DeckTitle = styled.h3`
+export const AssessmentButton = styled.button`
+  background-color: ${props => {
+    if (props.active) {
+      if (props.type === 'need-review') return '#ffebee';
+      if (props.type === 'almost') return '#fff8e1';
+      if (props.type === 'known') return '#e8f5e9';
+    }
+    return '#f0f0f0';
+  }};
+  color: ${props => {
+    if (props.active) {
+      if (props.type === 'need-review') return '#c62828';
+      if (props.type === 'almost') return '#ff8f00';
+      if (props.type === 'known') return '#2e7d32';
+    }
+    return '#333';
+  }};
+  border: none;
+  border-radius: 4px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    opacity: 0.9;
+  }
+`;
+
+export const SubjectSelectionSection = styled.div`
+  margin-bottom: 3rem;
+`;
+
+export const SubjectsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+`;
+
+export const SubjectCard = styled.div`
+  background-color: #f8f9ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  }
+`;
+
+export const SubjectIcon = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background-color: #e6e6ff;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+  color: #6c5ce7;
+  font-size: 1.5rem;
+`;
+
+export const SubjectTitle = styled.h3`
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: #333;
 `;
 
-export const DeckDescription = styled.p`
+export const SubjectCount = styled.div`
   font-size: 0.9rem;
   color: #666;
   margin-bottom: 1rem;
 `;
 
-export const CardCount = styled.span`
-  font-size: 0.8rem;
-  color: #666;
-`;
-
-export const FlashcardContainer = styled.div`
-  perspective: 1000px;
-  margin: 2rem auto;
-  width: 100%;
-  max-width: 600px;
-  height: 300px;
-  cursor: pointer;
-`;
-
-export const FlashcardInner = styled.div`
-  position: relative;
-  width: 100%;
-  height: 100%;
-  text-align: center;
-  transition: transform 0.8s;
-  transform-style: preserve-3d;
-  transform: ${props => props.flipped ? 'rotateY(180deg)' : 'rotateY(0)'};
-`;
-
-export const FlashcardFront = styled.div`
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
+export const CreateCustomSection = styled.div`
   background-color: #f8f9ff;
   border-radius: 8px;
-  padding: 2rem;
+  padding: 1.5rem;
+  text-align: center;
+  border: 2px dashed #ddd;
+  transition: border-color 0.2s ease;
+  
+  &:hover {
+    border-color: #6c5ce7;
+  }
+`;
+
+export const CreateIcon = styled.div`
+  width: 3rem;
+  height: 3rem;
+  background-color: #e6e6ff;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-`;
-
-export const FlashcardBack = styled(FlashcardFront)`
-  transform: rotateY(180deg);
-  background-color: #6c5ce7;
-  color: white;
-`;
-
-export const FlashcardQuestion = styled.div`
+  justify-content: center;
+  margin: 0 auto 1rem;
+  color: #6c5ce7;
   font-size: 1.5rem;
-  font-weight: 500;
+`;
+
+export const CreateTitle = styled.h3`
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+`;
+
+export const CreateDescription = styled.p`
+  font-size: 0.9rem;
+  color: #666;
   margin-bottom: 1rem;
 `;
 
-export const FlashcardAnswer = styled.div`
-  font-size: 1.5rem;
+export const CreateButton = styled.button`
+  background-color: #6c5ce7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.9rem;
   font-weight: 500;
-`;
-
-export const FlashcardNavigation = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 1rem;
-  margin-top: 2rem;
-`;
-
-export const NavButton = styled(Button)`
-  min-width: 100px;
-`;
-
-export const CardCounter = styled.div`
-  font-size: 1rem;
-  color: #666;
-`;
-
-export const Modal = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-`;
-
-export const ModalContent = styled.div`
-  background-color: white;
-  padding: 2rem;
-  border-radius: 8px;
-  width: 90%;
-  max-width: 500px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
   
-  h2 {
-    margin-bottom: 1.5rem;
-  }
-  
-  form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+  &:hover {
+    background-color: #5a4ad1;
   }
 `;
 
-export const Input = styled.input`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
+export const ErrorMessage = styled.div`
+  color: #c62828;
+  background-color: #ffebee;
+  padding: 1rem;
   border-radius: 4px;
-  font-size: 1rem;
-  
-  &:focus {
-    outline: none;
-    border-color: #6c5ce7;
-  }
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
 `;
 
-export const TextArea = styled.textarea`
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
+export const InfoMessage = styled.div`
+  color: #1565c0;
+  background-color: #e3f2fd;
+  padding: 1rem;
   border-radius: 4px;
-  font-size: 1rem;
-  min-height: 100px;
-  resize: vertical;
-  
-  &:focus {
-    outline: none;
-    border-color: #6c5ce7;
-  }
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+`;
+
+export const LoadingMessage = styled.div`
+  color: #333;
+  background-color: #f0f0f0;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  text-align: center;
 `;
