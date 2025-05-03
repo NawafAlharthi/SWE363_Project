@@ -20,6 +20,16 @@ const studyPlanSchema = new mongoose.Schema({
             required: true,
             min: 0,
           },
+          day: {
+            type: String,
+            required: true,
+            enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+          },
+          priority: {
+            type: String,
+            required: true,
+            enum: ['Low', 'Medium', 'High'],
+          },
           completed: {
             type: Boolean,
             default: false,
@@ -40,4 +50,3 @@ const studyPlanSchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model("StudyPlan", studyPlanSchema);
-
