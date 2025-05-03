@@ -109,14 +109,14 @@ app.get('/api/test/db', async (req, res) => {
 const tasksRouter = require("./routes/tasks");
 const flashcardsRouter = require("./routes/flashcards");
 const quizzesRouter = require("./routes/quizzes");
-const studyPlansRouter = require("./routes/studyPlans");
+const studyPlanRoutes = require('./routes/studyPlans');
 const aiqnaRouter = require("./routes/aiqna");
 
 // Use Routes
 app.use("/api/tasks", tasksRouter);
 app.use("/api/flashcards", flashcardsRouter);
 app.use("/api/quizzes", quizzesRouter);
-app.use("/api/study-plans", studyPlansRouter);
+app.use("/api/studyplans", studyPlanRoutes);
 app.use("/api/aiqna", aiqnaRouter);
 
 // Error handling middleware
