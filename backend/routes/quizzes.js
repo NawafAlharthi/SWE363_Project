@@ -1,5 +1,6 @@
 const router = require("express").Router();
 const Quiz = require("../models/Quiz");
+const OpenAI = require("openai");
 
 // GET all quizzes
 router.route("/").get((req, res) => {
@@ -47,5 +48,55 @@ router.route("/:id").put((req, res) => {
     .catch(err => res.status(400).json("Error: " + err));
 });
 
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+
+// NEW AI GENERATION ENDPOINT
+router.post("/generate", async (req, res) => {
+  try {
+    const { title, topic, numQuestions } = req.body;
+
+    const prompt = `Generate a quiz with ${numQuestions} multiple choice questions about ${topic}.
+      Each question must have 4 options and 1 correct answer. Format response as:
+      {
+        "questions": [
+          {
+            "question": "text",
+            "options": ["1", "2", "3", "4"],
+            "correctAnswer": 0
+          }
+        ]
+      }`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+    });
+
+    const content = JSON.parse(completion.choices[0].message.content);
+    
+    if (!content.questions) {
+      throw new Error("Invalid quiz format from AI");
+    }
+
+    const newQuiz = new Quiz({
+      title,
+      description: `AI-generated quiz about ${topic}`,
+      questions: content.questions
+    });
+
+    const savedQuiz = await newQuiz.save();
+    res.json(savedQuiz);
+  } catch (err) {
+    console.error("AI Generation Error:", err);
+    res.status(500).json("Error: " + err.message);
+  }
+});
+
 module.exports = router;
+
 
