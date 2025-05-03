@@ -3,21 +3,16 @@ import styled from 'styled-components';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ChartContainer = styled.div`
-  background: white;
+  background: transparent;
   padding: 0;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(108, 101, 231, 0.08);
   height: 220px;
   width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
-`;
-
-const ChartTitle = styled.h3`
-  margin: 0 0 1rem 0;
-  color: #333;
-  text-align: center;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 `;
 
 const StudyTimeDistributionChart = ({ subjects }) => {
@@ -29,20 +24,22 @@ const StudyTimeDistributionChart = ({ subjects }) => {
 
   return (
     <ChartContainer>
-      <ChartTitle>Study Time Distribution</ChartTitle>
       <ResponsiveContainer width="100%" height={160}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+        <BarChart data={data} style={{ background: 'transparent' }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ef" />
+          <XAxis dataKey="name" stroke="#888" tick={{ fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: 14 }} />
           <YAxis 
-            label={{ value: 'Hours', angle: -90, position: 'insideLeft', offset: 10, dy: 10 }} 
-            tick={{ dx: -2 }}
+            label={{ value: 'Hours', angle: -90, position: 'insideLeft', offset: 10, dy: 10, style: { fill: '#888', fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: 14 } }} 
+            tick={{ dx: -2, fill: '#888', fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: 14 }}
+            stroke="#888"
+            axisLine={{ stroke: '#e0e7ef' }}
           />
           <Tooltip 
+            contentStyle={{ borderRadius: 8, fontFamily: 'Inter, Segoe UI, Arial, sans-serif', fontSize: 14 }}
             formatter={(value) => [`${value} hours`, 'Study Time']}
             labelFormatter={(label) => `Subject: ${label}`}
           />
-          <Bar dataKey="time" fill="#4a90e2" />
+          <Bar dataKey="time" fill="#6c5ce7" radius={[8, 8, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </ChartContainer>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
+import Footer from '../common/Footer';
 
 const Container = styled.div`
   font-family: 'Inter', sans-serif;
@@ -156,14 +157,14 @@ const LandingPage = () => {
           <HeroSubtitle>
             Your AI-powered study companion that adapts to your learning style and helps you achieve academic success.
           </HeroSubtitle>
-          <GetStartedButton to="/dashboard">Get Started Free</GetStartedButton>
+          <GetStartedButton to="/signup">Get Started Free</GetStartedButton>
         </HeroContent>
         <HeroImage>
           <img src="https://cdn3d.iconscout.com/3d/premium/thumb/student-studying-on-laptop-while-sitting-big-books-3d-illustration-download-in-png-blend-fbx-gltf-file-formats--boy-learning-online-education-using-study-attending-class-back-to-school-pack-illustrations-4779537.png" alt="Student studying with laptop" />
         </HeroImage>
       </HeroSection>
       
-      <FeaturesSection>
+      <FeaturesSection id="features-section">
         <SectionTitle>Key Features</SectionTitle>
         <FeaturesGrid>
           <FeatureCard>
@@ -212,6 +213,7 @@ const LandingPage = () => {
           </FeatureCard>
         </FeaturesGrid>
       </FeaturesSection>
+      <Footer />
     </Container>
   );
 };

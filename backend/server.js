@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const path = require('path');
 require("dotenv").config({ path: path.join(__dirname, '.env') });
+const User = require('./models/User');
 
 const app = express();
 const port = process.env.PORT || 5001;
@@ -18,7 +19,8 @@ console.log('Debug - Environment Check:', {
     process.env.MONGODB_URI.replace(
       /mongodb\+srv:\/\/([^:]+):([^@]+)@/,
       'mongodb+srv://USERNAME:PASSWORD@'
-    ) : 'not provided'
+    ) : 'not provided',
+  JWT_SECRET_exists: !!process.env.JWT_SECRET
 });
 
 // MongoDB Connection with better options
@@ -33,13 +35,28 @@ const options = {
 
 // Connect to MongoDB with better error handling
 mongoose.connect(process.env.MONGODB_URI, options)
-  .then(() => {
+  .then(async () => {
     console.log('Successfully connected to MongoDB!');
     console.log('Connection state:', mongoose.connection.readyState);
-    return mongoose.connection.db.admin().ping();
-  })
-  .then(() => {
-    console.log('MongoDB ping successful! Database is responsive.');
+    await mongoose.connection.db.admin().ping();
+
+    // Create default admin user if not exists
+    const adminEmail = 'admin@example.com';
+    const adminPassword = 'admin123';
+    const adminUsername = 'admin';
+    let admin = await User.findOne({ email: adminEmail });
+    if (!admin) {
+      admin = new User({
+        username: adminUsername,
+        email: adminEmail,
+        password: adminPassword,
+        role: 'admin'
+      });
+      await admin.save();
+      console.log('Default admin user created:', adminEmail, 'password:', adminPassword);
+    } else {
+      console.log('Default admin user already exists:', adminEmail);
+    }
   })
   .catch(err => {
     console.error('MongoDB connection error details:', {
@@ -111,8 +128,10 @@ const flashcardsRouter = require("./routes/flashcards");
 const quizzesRouter = require("./routes/quizzes");
 const studyPlanRoutes = require('./routes/studyPlans');
 const aiqnaRouter = require("./routes/aiqna");
+const authRouter = require("./routes/auth");
 
 // Use Routes
+app.use("/api/auth", authRouter);
 app.use("/api/tasks", tasksRouter);
 app.use("/api/flashcards", flashcardsRouter);
 app.use("/api/quizzes", quizzesRouter);

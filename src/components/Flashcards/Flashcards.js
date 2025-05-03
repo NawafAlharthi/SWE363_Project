@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
+import AnimatedContainer from '../common/AnimatedContainer';
 import * as S from './Flashcards.styles';
 import { AddDeckModal, AddCardModal } from './FlashcardModals';
 import api from '../../config/api';
@@ -11,7 +12,6 @@ const Flashcards = () => {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [assessment, setAssessment] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAddDeckModalOpen, setIsAddDeckModalOpen] = useState(false);
   const [isAddCardModalOpen, setIsAddCardModalOpen] = useState(false);
@@ -30,13 +30,11 @@ const Flashcards = () => {
 
   const fetchDecks = async () => {
     try {
-      setLoading(true);
       const response = await api.get('/flashcards/decks');
       setDecks(response.data);
       if (response.data.length > 0 && !selectedDeck) {
         setSelectedDeck(response.data[0]);
       }
-      setLoading(false);
     } catch (err) {
       handleError("Failed to load decks", err);
     }
@@ -44,13 +42,11 @@ const Flashcards = () => {
 
   const fetchFlashcards = async (deckId) => {
     try {
-      setLoading(true);
       const response = await api.get(`/flashcards/cards/${deckId}`);
       setFlashcards(response.data);
       setCurrentCardIndex(0);
       setFlipped(false);
       setAssessment(null);
-      setLoading(false);
     } catch (err) {
       handleError(`Failed to load flashcards for deck`, err);
     }
@@ -58,7 +54,6 @@ const Flashcards = () => {
 
   const handleAddDeckSubmit = async (deckData) => {
     try {
-      setLoading(true);
       const response = await api.post('/flashcards/decks/generate', deckData);
       
       setDecks(prev => [...prev, response.data]);
@@ -67,8 +62,6 @@ const Flashcards = () => {
       setError(null);
     } catch (err) {
       handleError("Failed to generate deck", err);
-    } finally {
-      setLoading(false); // Ensure loading is reset
     }
   };
 
@@ -76,7 +69,6 @@ const Flashcards = () => {
     try {
       if (!selectedDeck) throw new Error("No deck selected");
       
-      setLoading(true);
       const response = await api.post('/flashcards/cards/add', {
         deckId: selectedDeck._id,
         front: cardData.question,
@@ -90,15 +82,12 @@ const Flashcards = () => {
       setError(null);
     } catch (err) {
       handleError("Failed to add card", err);
-    } finally {
-      setLoading(false); // Always reset loading state
     }
   };
 
   const handleError = (message, err) => {
     console.error(message, err);
     setError(message + (err.response?.data?.message || ''));
-    setLoading(false);
   };
 
   // Flashcard navigation handlers
@@ -128,7 +117,6 @@ const Flashcards = () => {
   const handleDeleteDeck = async (deckId) => {
     if (window.confirm("Delete this deck and all its cards?")) {
       try {
-        setLoading(true);
         await api.delete(`/flashcards/decks/${deckId}`);
         const updatedDecks = decks.filter(d => d._id !== deckId);
         setDecks(updatedDecks);
@@ -145,7 +133,6 @@ const Flashcards = () => {
   const handleDeleteCard = async (cardId) => {
     if (window.confirm("Delete this flashcard?")) {
       try {
-        setLoading(true);
         await api.delete(`/flashcards/cards/${cardId}`);
         
         setFlashcards(prev => 
@@ -156,8 +143,6 @@ const Flashcards = () => {
         );
       } catch (err) {
         handleError("Failed to delete card", err);
-      } finally {
-        setLoading(false);
       }
     }
   };
@@ -182,123 +167,128 @@ const Flashcards = () => {
     <>
       <Navbar isLoggedIn={true} />
       <S.Container>
-        <S.Breadcrumbs>
-          <S.BreadcrumbLink href="/dashboard">Dashboard</S.BreadcrumbLink>
-          <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
-          <S.BreadcrumbLink href="/flashcards">Flashcards</S.BreadcrumbLink>
-          {selectedDeck && (
-            <>
-              <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
-              <span>{selectedDeck.name}</span>
-            </>
-          )}
-        </S.Breadcrumbs>
+        <AnimatedContainer>
+          <S.Breadcrumbs>
+            <S.BreadcrumbLink href="/dashboard">Dashboard</S.BreadcrumbLink>
+            <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
+            <S.BreadcrumbLink href="/flashcards">Flashcards</S.BreadcrumbLink>
+            {selectedDeck && (
+              <>
+                <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
+                <span>{selectedDeck.name}</span>
+              </>
+            )}
+          </S.Breadcrumbs>
+        </AnimatedContainer>
 
-        <S.PageTitle>{selectedDeck ? selectedDeck.name : 'Flashcards'}</S.PageTitle>
+        <AnimatedContainer delay="0.1s">
+          <S.PageTitle>{selectedDeck ? selectedDeck.name : 'Flashcards'}</S.PageTitle>
+        </AnimatedContainer>
 
         {selectedDeck && (
           <>
-            <S.FlashcardControls>
-              <S.ControlButton onClick={shuffleCards} disabled={loading || totalCards < 2}>
-                Shuffle
-              </S.ControlButton>
-              <S.ControlButton onClick={() => setIsAddCardModalOpen(true)} disabled={loading}>
-                Add Card
-              </S.ControlButton>
-              <S.ControlButton 
-                onClick={() => handleDeleteDeck(selectedDeck._id)} 
-                disabled={loading}
-                style={{backgroundColor: '#dc3545'}}
-              >
-                Delete Deck
-              </S.ControlButton>
-            </S.FlashcardControls>
+            <AnimatedContainer delay="0.2s">
+              <S.FlashcardControls>
+                <S.ControlButton onClick={shuffleCards} disabled={totalCards < 2}>
+                  Shuffle
+                </S.ControlButton>
+                <S.ControlButton onClick={() => setIsAddCardModalOpen(true)}>
+                  Add Card
+                </S.ControlButton>
+                <S.ControlButton 
+                  onClick={() => handleDeleteDeck(selectedDeck._id)} 
+                  style={{backgroundColor: '#dc3545'}}
+                >
+                  Delete Deck
+                </S.ControlButton>
+              </S.FlashcardControls>
+            </AnimatedContainer>
 
-            {loading && flashcards.length === 0 ? (
-              <S.LoadingMessage>Loading flashcards...</S.LoadingMessage>
-            ) : totalCards > 0 && currentCard ? (
+            {totalCards > 0 && currentCard ? (
               <>
-                <S.FlashcardContainer onClick={handleFlip}>
-                  <S.FlashcardInner flipped={flipped}>
-                    <S.FlashcardFront>
-                      <S.FlashcardQuestion>
-                        {currentCard.front}
-                      </S.FlashcardQuestion>
-                      <S.FlashcardHint>
-                        Tap to reveal answer
-                      </S.FlashcardHint>
-                    </S.FlashcardFront>
-                    <S.FlashcardBack>
-                      <S.FlashcardAnswer>
-                        {currentCard.back}
-                      </S.FlashcardAnswer>
-                      <S.ControlButton 
-                        onClick={(e) => {
-                          e.stopPropagation(); 
-                          handleDeleteCard(currentCard._id);
-                        }} 
-                        style={{backgroundColor: '#dc3545', marginTop: '10px'}} 
-                        disabled={loading}
+                <AnimatedContainer delay="0.3s">
+                  <S.FlashcardContainer onClick={handleFlip}>
+                    <S.FlashcardInner flipped={flipped}>
+                      <S.FlashcardFront>
+                        <S.FlashcardQuestion>
+                          {currentCard.front}
+                        </S.FlashcardQuestion>
+                        <S.FlashcardHint>
+                          Tap to reveal answer
+                        </S.FlashcardHint>
+                      </S.FlashcardFront>
+                      <S.FlashcardBack>
+                        <S.FlashcardAnswer>
+                          {currentCard.back}
+                        </S.FlashcardAnswer>
+                        <S.ControlButton 
+                          onClick={(e) => {
+                            e.stopPropagation(); 
+                            handleDeleteCard(currentCard._id);
+                          }} 
+                          style={{backgroundColor: '#dc3545', marginTop: '10px'}}
+                        >
+                          Delete Card
+                        </S.ControlButton>
+                      </S.FlashcardBack>
+                    </S.FlashcardInner>
+                  </S.FlashcardContainer>
+                </AnimatedContainer>
+
+                <AnimatedContainer delay="0.4s">
+                  <S.FlashcardNavigation>
+                    <S.NavButton onClick={handlePrevious} disabled={currentCardIndex === 0}>
+                      Previous
+                    </S.NavButton>
+                    <S.CardCounter>
+                      Card {currentCardIndex + 1} of {totalCards}
+                    </S.CardCounter>
+                    <S.NavButton primary onClick={handleNext} disabled={currentCardIndex === totalCards - 1}>
+                      Next
+                    </S.NavButton>
+                  </S.FlashcardNavigation>
+                </AnimatedContainer>
+
+                <AnimatedContainer delay="0.5s">
+                  <S.SelfAssessmentSection>
+                    <S.SectionTitle>Self-Assessment</S.SectionTitle>
+                    <S.AssessmentButtons>
+                      <S.AssessmentButton
+                        type="need-review"
+                        active={assessment === 'need-review'}
+                        onClick={() => setAssessment('need-review')}
                       >
-                        Delete Card
-                      </S.ControlButton>
-                    </S.FlashcardBack>
-                  </S.FlashcardInner>
-                </S.FlashcardContainer>
-
-                <S.FlashcardNavigation>
-                  <S.NavButton onClick={handlePrevious} disabled={loading || currentCardIndex === 0}>
-                    Previous
-                  </S.NavButton>
-                  <S.CardCounter>
-                    Card {currentCardIndex + 1} of {totalCards}
-                  </S.CardCounter>
-                  <S.NavButton primary onClick={handleNext} disabled={loading || currentCardIndex === totalCards - 1}>
-                    Next
-                  </S.NavButton>
-                </S.FlashcardNavigation>
-
-                <S.SelfAssessmentSection>
-                  <S.SectionTitle>Self-Assessment</S.SectionTitle>
-                  <S.AssessmentButtons>
-                    <S.AssessmentButton
-                      type="need-review"
-                      active={assessment === 'need-review'}
-                      onClick={() => setAssessment('need-review')}
-                      disabled={loading}
-                    >
-                      Need Review
-                    </S.AssessmentButton>
-                    <S.AssessmentButton
-                      type="almost"
-                      active={assessment === 'almost'}
-                      onClick={() => setAssessment('almost')}
-                      disabled={loading}
-                    >
-                      Almost There
-                    </S.AssessmentButton>
-                    <S.AssessmentButton
-                      type="known"
-                      active={assessment === 'known'}
-                      onClick={() => setAssessment('known')}
-                      disabled={loading}
-                    >
-                      Known
-                    </S.AssessmentButton>
-                  </S.AssessmentButtons>
-                </S.SelfAssessmentSection>
+                        Need Review
+                      </S.AssessmentButton>
+                      <S.AssessmentButton
+                        type="almost"
+                        active={assessment === 'almost'}
+                        onClick={() => setAssessment('almost')}
+                      >
+                        Almost There
+                      </S.AssessmentButton>
+                      <S.AssessmentButton
+                        type="known"
+                        active={assessment === 'known'}
+                        onClick={() => setAssessment('known')}
+                      >
+                        Known
+                      </S.AssessmentButton>
+                    </S.AssessmentButtons>
+                  </S.SelfAssessmentSection>
+                </AnimatedContainer>
               </>
             ) : (
-              <S.InfoMessage>No flashcards in this deck. Click "Add Card" to create one.</S.InfoMessage>
+              <AnimatedContainer delay="0.3s">
+                <S.InfoMessage>No flashcards in this deck. Click "Add Card" to create one.</S.InfoMessage>
+              </AnimatedContainer>
             )}
           </>
         )}
 
-        <S.SubjectSelectionSection>
-          <S.SectionTitle>Decks</S.SectionTitle>
-          {loading && decks.length === 0 ? (
-            <S.LoadingMessage>Loading decks...</S.LoadingMessage>
-          ) : (
+        <AnimatedContainer delay="0.6s">
+          <S.SubjectSelectionSection>
+            <S.SectionTitle>Decks</S.SectionTitle>
             <S.SubjectsGrid>
               {decks.map((deck) => (
                 <S.SubjectCard key={deck._id} selected={selectedDeck?._id === deck._id}>
@@ -307,7 +297,7 @@ const Flashcards = () => {
                   <S.NavButton 
                     primary 
                     onClick={() => setSelectedDeck(deck)}
-                    disabled={loading || (selectedDeck?._id === deck._id)}
+                    disabled={selectedDeck?._id === deck._id}
                   >
                     {selectedDeck?._id === deck._id ? 'Selected' : 'Study'}
                   </S.NavButton>
@@ -318,13 +308,13 @@ const Flashcards = () => {
                 <S.CreateIcon>+</S.CreateIcon>
                 <S.CreateTitle>Generate AI Deck</S.CreateTitle>
                 <S.CreateDescription>Automatically create flashcards</S.CreateDescription>
-                <S.CreateButton onClick={() => setIsAddDeckModalOpen(true)} disabled={loading}>
+                <S.CreateButton onClick={() => setIsAddDeckModalOpen(true)}>
                   Generate
                 </S.CreateButton>
               </S.CreateCustomSection>
             </S.SubjectsGrid>
-          )}
-        </S.SubjectSelectionSection>
+          </S.SubjectSelectionSection>
+        </AnimatedContainer>
       </S.Container>
 
       <AddDeckModal 

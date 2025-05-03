@@ -1,8 +1,10 @@
 // Dashboard.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
 import TaskModal from './TaskModal';
+import { useNavigate } from 'react-router-dom';
+import AnimatedContainer from '../common/AnimatedContainer';
 
 const DashboardContainer = styled.div`
   font-family: 'Inter', sans-serif;
@@ -234,142 +236,415 @@ const ViewDetailsButton = styled.button`
   }
 `;
 
-const Dashboard = () => {
-  // State for tasks
-  const [tasks, setTasks] = useState([
-    {
-      id: 1,
-      title: 'Complete Physics Problem Set',
-      dueDate: 'Due today at 5:00 PM',
-      icon: '📝',
-      completed: false
-    },
-    {
-      id: 2,
-      title: 'Review Biology Notes',
-      dueDate: 'Due tomorrow at 9:00 AM',
-      icon: '📚',
-      completed: false
-    },
-    {
-      id: 3,
-      title: 'Prepare for History Presentation',
-      dueDate: 'Due in 3 days',
-      icon: '🎭',
-      completed: false
+const SearchBar = styled.input`
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  font-family: 'Inter', sans-serif;
+  
+  &:focus {
+    outline: none;
+    border-color: #6c5ce7;
+  }
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+`;
+
+const FilterButton = styled.button`
+  background-color: ${props => props.active ? '#6c5ce7' : 'transparent'};
+  color: ${props => props.active ? 'white' : '#6c5ce7'};
+  border: 1px solid #6c5ce7;
+  border-radius: 4px;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: ${props => props.active ? '#5a4ad1' : '#f0f0ff'};
+  }
+`;
+
+const PriorityBadge = styled.span`
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+  background-color: ${props => {
+    switch (props.priority) {
+      case 'high':
+        return '#ff6b6b';
+      case 'medium':
+        return '#ffd93d';
+      case 'low':
+        return '#6c5ce7';
+      default:
+        return '#ddd';
     }
-  ]);
+  }};
+  color: ${props => props.priority === 'medium' ? '#333' : 'white'};
+`;
+
+const DetailsModalOverlay = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+`;
+
+const DetailsModalContainer = styled.div`
+  background-color: white;
+  border-radius: 8px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+`;
+
+const DetailsModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`;
+
+const DetailsModalTitle = styled.h2`
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+`;
+
+const DetailsCloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  &:hover { color: #333; }
+`;
+
+const DetailsModal = ({ isOpen, onClose, title, children }) => {
+  if (!isOpen) return null;
+  return (
+    <DetailsModalOverlay>
+      <DetailsModalContainer>
+        <DetailsModalHeader>
+          <DetailsModalTitle>{title}</DetailsModalTitle>
+          <DetailsCloseButton onClick={onClose}>&times;</DetailsCloseButton>
+        </DetailsModalHeader>
+        {children}
+      </DetailsModalContainer>
+    </DetailsModalOverlay>
+  );
+};
+
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const [tasks, setTasks] = useState(() => {
+    const savedTasks = localStorage.getItem('tasks');
+    return savedTasks ? JSON.parse(savedTasks) : [];
+  });
   
-  // State for task modal
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filter, setFilter] = useState('all');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [detailsModal, setDetailsModal] = useState(null);
   
-  // Function to add a new task
+  // Save tasks to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }, [tasks]);
+  
   const handleAddTask = (newTask) => {
-    setTasks([...tasks, newTask]);
+    setTasks([...tasks, { ...newTask, id: Date.now(), createdAt: new Date().toISOString() }]);
   };
   
-  // Function to toggle task completion
   const handleToggleTask = (taskId) => {
     setTasks(tasks.map(task => 
       task.id === taskId ? { ...task, completed: !task.completed } : task
     ));
   };
   
+  const handleDeleteTask = (taskId) => {
+    setTasks(tasks.filter(task => task.id !== taskId));
+  };
+  
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filter === 'all' || 
+      (filter === 'completed' && task.completed) ||
+      (filter === 'active' && !task.completed);
+    return matchesSearch && matchesFilter;
+  });
+  
+  const sortedTasks = [...filteredTasks].sort((a, b) => {
+    if (a.completed !== b.completed) return a.completed ? 1 : -1;
+    return new Date(a.dueDate) - new Date(b.dueDate);
+  });
+  
+  const handleQuickAccess = (action) => {
+    switch (action) {
+      case 'study':
+        navigate('/pomodoro');
+        break;
+      case 'quiz':
+        navigate('/quizzes');
+        break;
+      case 'ai':
+        navigate('/ai-qna');
+        break;
+      default:
+        break;
+    }
+  };
+  
+  const calculateProgress = () => {
+    const completedTasks = tasks.filter(task => task.completed).length;
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    
+    const today = new Date();
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    
+    const weeklyTasks = tasks.filter(task => {
+      const taskDate = new Date(task.dueDate);
+      return taskDate >= weekStart && taskDate <= weekEnd;
+    });
+    
+    const completedWeeklyTasks = weeklyTasks.filter(task => task.completed).length;
+    
+    return {
+      completionRate,
+      weeklyTasks: weeklyTasks.length,
+      completedWeeklyTasks
+    };
+  };
+  
+  const progress = calculateProgress();
+  
   return (
     <>
       <Navbar isLoggedIn={true} />
       <DashboardContainer>
-        <DashboardHeader>Dashboard</DashboardHeader>
-        
-        <QuickAccessGrid>
-          <QuickAccessCard>
-            <CardLabel>QUICK ACCESS</CardLabel>
-            <CardTitle>Start Study Session</CardTitle>
-            <CardDescription>Begin a focused study session with your current materials</CardDescription>
-            <CardButton>Start Now</CardButton>
-          </QuickAccessCard>
-          
-          <QuickAccessCard>
-            <CardLabel>QUICK ACCESS</CardLabel>
-            <CardTitle>Take a Quiz</CardTitle>
-            <CardDescription>Test your knowledge with a quiz from your recent topics</CardDescription>
-            <CardButton>Start Quiz</CardButton>
-          </QuickAccessCard>
-          
-          <QuickAccessCard>
-            <CardLabel>QUICK ACCESS</CardLabel>
-            <CardTitle>Ask AI Assistant</CardTitle>
-            <CardDescription>Get instant help with difficult concepts or homework</CardDescription>
-            <CardButton>Ask Question</CardButton>
-          </QuickAccessCard>
-        </QuickAccessGrid>
-        
-        <SectionTitle>To-Do List</SectionTitle>
-        <TasksContainer>
-          <TasksHeader>
-            <div>
-              <SectionTitle>Today's Tasks</SectionTitle>
-              <TasksDescription>Manage your study tasks and track completion</TasksDescription>
-            </div>
-            <ButtonGroup>
-              <AddTaskButton onClick={() => setIsTaskModalOpen(true)}>Add Task</AddTaskButton>
-              <ViewAllButton>View All</ViewAllButton>
-            </ButtonGroup>
-          </TasksHeader>
-          
-          <TasksList>
-            {tasks.map(task => (
-              <TaskItem key={task.id} style={{ opacity: task.completed ? 0.6 : 1 }}>
-                <TaskIcon>{task.icon}</TaskIcon>
-                <TaskContent>
-                  <TaskTitle style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
-                    {task.title}
-                  </TaskTitle>
-                  <TaskDueDate>{task.dueDate}</TaskDueDate>
-                </TaskContent>
-                <TaskToggle>
-                  <input 
-                    type="checkbox" 
-                    checked={task.completed}
-                    onChange={() => handleToggleTask(task.id)}
-                  />
-                </TaskToggle>
-              </TaskItem>
-            ))}
+        <AnimatedContainer delay="0.05s">
+          <DashboardHeader>Dashboard</DashboardHeader>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.1s">
+          <QuickAccessGrid>
+            <QuickAccessCard>
+              <CardLabel>QUICK ACCESS</CardLabel>
+              <CardTitle>Start Study Session</CardTitle>
+              <CardDescription>Begin a focused study session with your current materials</CardDescription>
+              <CardButton onClick={() => handleQuickAccess('study')}>Start Now</CardButton>
+            </QuickAccessCard>
             
-            {tasks.length === 0 && (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                No tasks yet. Click "Add Task" to create your first task.
+            <QuickAccessCard>
+              <CardLabel>QUICK ACCESS</CardLabel>
+              <CardTitle>Take a Quiz</CardTitle>
+              <CardDescription>Test your knowledge with a quiz from your recent topics</CardDescription>
+              <CardButton onClick={() => handleQuickAccess('quiz')}>Start Quiz</CardButton>
+            </QuickAccessCard>
+            
+            <QuickAccessCard>
+              <CardLabel>QUICK ACCESS</CardLabel>
+              <CardTitle>Ask AI Assistant</CardTitle>
+              <CardDescription>Get instant help with difficult concepts or homework</CardDescription>
+              <CardButton onClick={() => handleQuickAccess('ai')}>Ask Question</CardButton>
+            </QuickAccessCard>
+          </QuickAccessGrid>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.15s">
+          <SectionTitle>To-Do List</SectionTitle>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.2s">
+          <TasksContainer>
+            <TasksHeader>
+              <div>
+                <SectionTitle>Today's Tasks</SectionTitle>
+                <TasksDescription>Manage your study tasks and track completion</TasksDescription>
               </div>
-            )}
-          </TasksList>
-        </TasksContainer>
-        
-        <SectionTitle>Progress Tracker</SectionTitle>
-        <ProgressGrid>
-          <ProgressCard>
-            <ProgressIcon>📊</ProgressIcon>
-            <ProgressTitle>Quiz Completion</ProgressTitle>
-            <ProgressDescription>You've completed 8 of 10 quizzes this week</ProgressDescription>
-            <ViewDetailsButton>View Details</ViewDetailsButton>
-          </ProgressCard>
-          
-          <ProgressCard>
-            <ProgressIcon>⏱️</ProgressIcon>
-            <ProgressTitle>Study Sessions</ProgressTitle>
-            <ProgressDescription>12 hours of focused study time this week</ProgressDescription>
-            <ViewDetailsButton>View Details</ViewDetailsButton>
-          </ProgressCard>
-          
-          <ProgressCard>
-            <ProgressIcon>📈</ProgressIcon>
-            <ProgressTitle>Pomodoro Cycles</ProgressTitle>
-            <ProgressDescription>Completed 24 Pomodoro cycles this week</ProgressDescription>
-            <ViewDetailsButton>View Details</ViewDetailsButton>
-          </ProgressCard>
-        </ProgressGrid>
-        
-        {/* Task Modal */}
+              <ButtonGroup>
+                <AddTaskButton onClick={() => setIsTaskModalOpen(true)}>Add Task</AddTaskButton>
+                <ViewAllButton>View All</ViewAllButton>
+              </ButtonGroup>
+            </TasksHeader>
+            
+            <SearchBar
+              type="text"
+              placeholder="Search tasks..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            
+            <FilterGroup>
+              <FilterButton
+                active={filter === 'all'}
+                onClick={() => setFilter('all')}
+              >
+                All Tasks
+              </FilterButton>
+              <FilterButton
+                active={filter === 'active'}
+                onClick={() => setFilter('active')}
+              >
+                Active
+              </FilterButton>
+              <FilterButton
+                active={filter === 'completed'}
+                onClick={() => setFilter('completed')}
+              >
+                Completed
+              </FilterButton>
+            </FilterGroup>
+            
+            <TasksList>
+              {sortedTasks.map(task => (
+                <TaskItem key={task.id} style={{ opacity: task.completed ? 0.6 : 1 }}>
+                  <TaskIcon>{task.icon}</TaskIcon>
+                  <TaskContent>
+                    <TaskTitle style={{ textDecoration: task.completed ? 'line-through' : 'none' }}>
+                      {task.title}
+                      {task.priority && <PriorityBadge priority={task.priority}>
+                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                      </PriorityBadge>}
+                    </TaskTitle>
+                    <TaskDueDate>{task.dueDate}</TaskDueDate>
+                  </TaskContent>
+                  <TaskToggle>
+                    <input 
+                      type="checkbox" 
+                      checked={task.completed}
+                      onChange={() => handleToggleTask(task.id)}
+                    />
+                    <button 
+                      onClick={() => handleDeleteTask(task.id)}
+                      style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#ff6b6b',
+                        cursor: 'pointer',
+                        marginLeft: '0.5rem'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </TaskToggle>
+                </TaskItem>
+              ))}
+              
+              {sortedTasks.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                  {searchQuery ? 'No tasks match your search.' : 'No tasks yet. Click "Add Task" to create your first task.'}
+                </div>
+              )}
+            </TasksList>
+          </TasksContainer>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.25s">
+          <SectionTitle>Progress Tracker</SectionTitle>
+        </AnimatedContainer>
+        <AnimatedContainer delay="0.3s">
+          <ProgressGrid>
+            <ProgressCard>
+              <ProgressIcon>📊</ProgressIcon>
+              <ProgressTitle>Task Completion</ProgressTitle>
+              <ProgressDescription>
+                {progress.completionRate.toFixed(1)}% of all tasks completed
+              </ProgressDescription>
+              <ViewDetailsButton onClick={() => setDetailsModal('completion')}>View Details</ViewDetailsButton>
+            </ProgressCard>
+            
+            <ProgressCard>
+              <ProgressIcon>⏱️</ProgressIcon>
+              <ProgressTitle>Weekly Progress</ProgressTitle>
+              <ProgressDescription>
+                {progress.completedWeeklyTasks} of {progress.weeklyTasks} tasks completed this week
+              </ProgressDescription>
+              <ViewDetailsButton onClick={() => setDetailsModal('weekly')}>View Details</ViewDetailsButton>
+            </ProgressCard>
+            
+            <ProgressCard>
+              <ProgressIcon>📈</ProgressIcon>
+              <ProgressTitle>Productivity</ProgressTitle>
+              <ProgressDescription>
+                {progress.completedWeeklyTasks > 0 ? 'Great progress this week!' : 'Start completing tasks to see your progress'}
+              </ProgressDescription>
+              <ViewDetailsButton onClick={() => setDetailsModal('productivity')}>View Details</ViewDetailsButton>
+            </ProgressCard>
+          </ProgressGrid>
+        </AnimatedContainer>
+        <DetailsModal
+          isOpen={!!detailsModal}
+          onClose={() => setDetailsModal(null)}
+          title={
+            detailsModal === 'completion' ? 'Task Completion Details' :
+            detailsModal === 'weekly' ? 'Weekly Progress Details' :
+            detailsModal === 'productivity' ? 'Productivity Details' : ''
+          }
+        >
+          {detailsModal === 'completion' && (
+            <div>
+              <p><b>Total Tasks:</b> {tasks.length}</p>
+              <p><b>Completed Tasks:</b> {tasks.filter(t => t.completed).length}</p>
+              <p><b>Completion Rate:</b> {progress.completionRate.toFixed(1)}%</p>
+              <ul>
+                {tasks.map(task => (
+                  <li key={task.id} style={{textDecoration: task.completed ? 'line-through' : 'none'}}>
+                    {task.title} {task.completed ? '✅' : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {detailsModal === 'weekly' && (
+            <div>
+              <p><b>Tasks Due This Week:</b> {progress.weeklyTasks}</p>
+              <p><b>Completed This Week:</b> {progress.completedWeeklyTasks}</p>
+              <ul>
+                {tasks.filter(task => {
+                  const today = new Date();
+                  const weekStart = new Date(today);
+                  weekStart.setDate(today.getDate() - today.getDay());
+                  const weekEnd = new Date(weekStart);
+                  weekEnd.setDate(weekStart.getDate() + 6);
+                  const taskDate = new Date(task.dueDate);
+                  return taskDate >= weekStart && taskDate <= weekEnd;
+                }).map(task => (
+                  <li key={task.id} style={{textDecoration: task.completed ? 'line-through' : 'none'}}>
+                    {task.title} {task.completed ? '✅' : ''}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {detailsModal === 'productivity' && (
+            <div>
+              <p><b>Productivity is measured by your weekly completions.</b></p>
+              <p>{progress.completedWeeklyTasks > 0 ? 'Keep up the good work!' : 'Start completing tasks to boost your productivity.'}</p>
+            </div>
+          )}
+        </DetailsModal>
         <TaskModal 
           isOpen={isTaskModalOpen}
           onClose={() => setIsTaskModalOpen(false)}

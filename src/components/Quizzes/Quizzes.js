@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
+import AnimatedContainer from '../common/AnimatedContainer';
 import api from '../../config/api';
 import * as S from './Quizzes.styles';
 
@@ -9,7 +10,6 @@ const Quizzes = () => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState({});
   const [score, setScore] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [lastQuizStats, setLastQuizStats] = useState(null);
   const [error, setError] = useState(null);
   const [modalOpen, setModalOpen] = useState(null);
@@ -33,13 +33,10 @@ const Quizzes = () => {
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
-        setLoading(true);
         const response = await api.get('/quizzes');
         setQuizzes(response.data);
-        setLoading(false);
       } catch (err) {
         setError('Failed to load quizzes');
-        setLoading(false);
       }
     };
     fetchQuizzes();
@@ -49,15 +46,12 @@ const Quizzes = () => {
   const handleGenerateAIQuiz = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
       const response = await api.post('/quizzes/generate', aiParams);
       setQuizzes(prev => [...prev, response.data]);
       setModalOpen(null);
       setError(null);
     } catch (err) {
       setError(err.response?.data || 'Failed to generate quiz');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -65,7 +59,6 @@ const Quizzes = () => {
   const handleAddManualQuiz = async (e) => {
     e.preventDefault();
     try {
-      setLoading(true);
       const response = await api.post('/quizzes/add', {
         title: manualQuizData.title,
         description: manualQuizData.description,
@@ -76,8 +69,6 @@ const Quizzes = () => {
       setError(null);
     } catch (err) {
       setError('Failed to create quiz');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -119,63 +110,72 @@ const Quizzes = () => {
     <>
       <Navbar isLoggedIn={true} />
       <S.Container>
-        <S.Breadcrumbs>
-          <S.BreadcrumbLink href="/dashboard">Dashboard</S.BreadcrumbLink>
-          <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
-          <S.BreadcrumbLink href="/quizzes">Quizzes</S.BreadcrumbLink>
-          {!selectedQuiz && <>
+        <AnimatedContainer>
+          <S.Breadcrumbs>
+            <S.BreadcrumbLink href="/dashboard">Dashboard</S.BreadcrumbLink>
             <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
-            <S.BreadcrumbLink href="/quizzes/selection">Quiz Selection</S.BreadcrumbLink>
-          </>}
-        </S.Breadcrumbs>
+            <S.BreadcrumbLink href="/quizzes">Quizzes</S.BreadcrumbLink>
+            {!selectedQuiz && <>
+              <S.BreadcrumbSeparator>›</S.BreadcrumbSeparator>
+              <S.BreadcrumbLink href="/quizzes/selection">Quiz Selection</S.BreadcrumbLink>
+            </>}
+          </S.Breadcrumbs>
+        </AnimatedContainer>
 
-        <S.PageTitle>
-          {selectedQuiz ? selectedQuiz.title : 'Quiz Selection'}
-        </S.PageTitle>
+        <AnimatedContainer delay="0.1s">
+          <S.PageTitle>
+            {selectedQuiz ? selectedQuiz.title : 'Quiz Selection'}
+          </S.PageTitle>
+        </AnimatedContainer>
 
         {error && <S.ErrorMessage>{error}</S.ErrorMessage>}
 
         {!selectedQuiz ? (
           // Quiz Selection View
           <>
-            <S.ButtonGroup>
-              <S.Button onClick={() => setModalOpen('manual')}>
-                Create Manual Quiz
-              </S.Button>
-              <S.Button onClick={() => setModalOpen('ai')}>
-                Generate AI Quiz
-              </S.Button>
-            </S.ButtonGroup>
+            <AnimatedContainer delay="0.2s">
+              <S.ButtonGroup>
+                <S.Button onClick={() => setModalOpen('manual')}>
+                  Create Manual Quiz
+                </S.Button>
+                <S.Button onClick={() => setModalOpen('ai')}>
+                  Generate AI Quiz
+                </S.Button>
+              </S.ButtonGroup>
+            </AnimatedContainer>
 
-            {loading ? (
-              <S.LoadingMessage>Loading quizzes...</S.LoadingMessage>
-            ) : quizzes.length === 0 ? (
-              <S.InfoMessage>No quizzes available. Create one!</S.InfoMessage>
+            {quizzes.length === 0 ? (
+              <AnimatedContainer delay="0.3s">
+                <S.InfoMessage>No quizzes available. Create one!</S.InfoMessage>
+              </AnimatedContainer>
             ) : (
               <>
-                <S.SectionTitle>Available Quizzes</S.SectionTitle>
-                <S.QuizzesGrid>
-                  {quizzes.map(quiz => (
-                    <S.QuizCard key={quiz._id}>
-                      <S.QuizIcon>📝</S.QuizIcon>
-                      <S.QuizTitle>{quiz.title}</S.QuizTitle>
-                      {quiz.description && (
-                        <S.QuizDescription>{quiz.description}</S.QuizDescription>
-                      )}
-                      <S.QuizMeta>
-                        <span>{quiz.questions.length} questions</span>
-                        <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
-                      </S.QuizMeta>
-                      <S.ButtonGroup>
-                        <S.Button onClick={() => handleStartQuiz(quiz)}>
-                          Start
-                        </S.Button>
-                      </S.ButtonGroup>
-                    </S.QuizCard>
-                  ))}
-                </S.QuizzesGrid>
+                <AnimatedContainer delay="0.3s">
+                  <S.SectionTitle>Available Quizzes</S.SectionTitle>
+                  <S.QuizzesGrid>
+                    {quizzes.map(quiz => (
+                      <S.QuizCard key={quiz._id}>
+                        <S.QuizIcon>📝</S.QuizIcon>
+                        <S.QuizTitle>{quiz.title}</S.QuizTitle>
+                        {quiz.description && (
+                          <S.QuizDescription>{quiz.description}</S.QuizDescription>
+                        )}
+                        <S.QuizMeta>
+                          <span>{quiz.questions.length} questions</span>
+                          <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
+                        </S.QuizMeta>
+                        <S.ButtonGroup>
+                          <S.Button onClick={() => handleStartQuiz(quiz)}>
+                            Start
+                          </S.Button>
+                        </S.ButtonGroup>
+                      </S.QuizCard>
+                    ))}
+                  </S.QuizzesGrid>
+                </AnimatedContainer>
+
                 {lastQuizStats && (
-                  <>
+                  <AnimatedContainer delay="0.4s">
                     <S.SectionTitle>Last Quiz Statistics</S.SectionTitle>
                     <S.StatisticsGrid>
                       <S.StatCard>
@@ -198,7 +198,7 @@ const Quizzes = () => {
                         <S.StatValue>{lastQuizStats.score.toFixed(1)}%</S.StatValue>
                       </S.StatCard>
                     </S.StatisticsGrid>
-                  </>
+                  </AnimatedContainer>
                 )}
               </>
             )}
@@ -206,60 +206,68 @@ const Quizzes = () => {
         ) : (
           // Quiz Taking View
           <>
-            <S.Button onClick={() => setSelectedQuiz(null)}>
-              Back to Quizzes
-            </S.Button>
+            <AnimatedContainer delay="0.2s">
+              <S.Button onClick={() => setSelectedQuiz(null)}>
+                Back to Quizzes
+              </S.Button>
+            </AnimatedContainer>
 
             {score !== null ? (
-              <S.ResultsContainer>
-                <S.ResultsTitle>Quiz Complete!</S.ResultsTitle>
-                <S.Score>Your Score: {score.toFixed(1)}%</S.Score>
-                <S.Button onClick={() => {
-                  setSelectedQuiz(null);
-                  setScore(null);
-                }}>
-                  Return to Quizzes
-                </S.Button>
-              </S.ResultsContainer>
+              <AnimatedContainer delay="0.3s">
+                <S.ResultsContainer>
+                  <S.ResultsTitle>Quiz Complete!</S.ResultsTitle>
+                  <S.Score>Your Score: {score.toFixed(1)}%</S.Score>
+                  <S.Button onClick={() => {
+                    setSelectedQuiz(null);
+                    setScore(null);
+                  }}>
+                    Return to Quizzes
+                  </S.Button>
+                </S.ResultsContainer>
+              </AnimatedContainer>
             ) : (
               <>
-                <S.QuestionContainer>
-                  <S.QuestionNumber>
-                    Question {currentQuestionIndex + 1} of {selectedQuiz.questions.length}
-                  </S.QuestionNumber>
-                  <S.QuestionText>
-                    {selectedQuiz.questions[currentQuestionIndex].question}
-                  </S.QuestionText>
-                  <S.AnswersList>
-                    {selectedQuiz.questions[currentQuestionIndex].options.map((option, index) => (
-                      <S.AnswerOption
-                        key={index}
-                        selected={userAnswers[currentQuestionIndex] === index}
-                        onClick={() => handleAnswerSelect(currentQuestionIndex, index)}
-                      >
-                        {option}
-                      </S.AnswerOption>
-                    ))}
-                  </S.AnswersList>
-                </S.QuestionContainer>
+                <AnimatedContainer delay="0.3s">
+                  <S.QuestionContainer>
+                    <S.QuestionNumber>
+                      Question {currentQuestionIndex + 1} of {selectedQuiz.questions.length}
+                    </S.QuestionNumber>
+                    <S.QuestionText>
+                      {selectedQuiz.questions[currentQuestionIndex].question}
+                    </S.QuestionText>
+                    <S.AnswersList>
+                      {selectedQuiz.questions[currentQuestionIndex].options.map((option, index) => (
+                        <S.AnswerOption
+                          key={index}
+                          selected={userAnswers[currentQuestionIndex] === index}
+                          onClick={() => handleAnswerSelect(currentQuestionIndex, index)}
+                        >
+                          {option}
+                        </S.AnswerOption>
+                      ))}
+                    </S.AnswersList>
+                  </S.QuestionContainer>
+                </AnimatedContainer>
 
-                <S.NavigationButtons>
-                  <S.Button
-                    onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
-                    disabled={currentQuestionIndex === 0}
-                  >
-                    Previous
-                  </S.Button>
-                  {currentQuestionIndex === selectedQuiz.questions.length - 1 ? (
-                    <S.Button onClick={handleSubmitQuiz}>
-                      Submit Quiz
+                <AnimatedContainer delay="0.4s">
+                  <S.NavigationButtons>
+                    <S.Button
+                      onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
+                      disabled={currentQuestionIndex === 0}
+                    >
+                      Previous
                     </S.Button>
-                  ) : (
-                    <S.Button onClick={() => setCurrentQuestionIndex(prev => prev + 1)}>
-                      Next
-                    </S.Button>
-                  )}
-                </S.NavigationButtons>
+                    {currentQuestionIndex === selectedQuiz.questions.length - 1 ? (
+                      <S.Button onClick={handleSubmitQuiz}>
+                        Submit Quiz
+                      </S.Button>
+                    ) : (
+                      <S.Button onClick={() => setCurrentQuestionIndex(prev => prev + 1)}>
+                        Next
+                      </S.Button>
+                    )}
+                  </S.NavigationButtons>
+                </AnimatedContainer>
               </>
             )}
           </>
@@ -306,8 +314,8 @@ const Quizzes = () => {
                 </S.FormGroup>
 
                 <S.ButtonGroup>
-                  <S.Button type="submit" disabled={loading}>
-                    {loading ? 'Generating...' : 'Generate Quiz'}
+                  <S.Button type="submit">
+                    Generate Quiz
                   </S.Button>
                   <S.Button type="button" onClick={() => setModalOpen(null)}>
                     Cancel
@@ -408,8 +416,8 @@ const Quizzes = () => {
                 ))}
 
                 <S.ButtonGroup>
-                  <S.Button type="submit" disabled={loading}>
-                    {loading ? 'Creating...' : 'Create Quiz'}
+                  <S.Button type="submit">
+                    Create Quiz
                   </S.Button>
                   <S.Button type="button" onClick={() => setModalOpen(null)}>
                     Cancel

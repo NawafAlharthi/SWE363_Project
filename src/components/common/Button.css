@@ -1,0 +1,129 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font-family: 'Inter', sans-serif;
+}
+
+/* Button Variants */
+.button-primary {
+  background-color: #6c5ce7;
+  color: white;
+  box-shadow: 0 2px 4px rgba(108, 92, 231, 0.2);
+}
+
+.button-primary:hover:not(:disabled) {
+  background-color: #5a4bd1;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(108, 92, 231, 0.3);
+}
+
+.button-secondary {
+  background-color: #a8a4e6;
+  color: white;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background-color: #9a96d8;
+  transform: translateY(-1px);
+}
+
+.button-outline {
+  background-color: transparent;
+  border: 2px solid #6c5ce7;
+  color: #6c5ce7;
+}
+
+.button-outline:hover:not(:disabled) {
+  background-color: rgba(108, 92, 231, 0.1);
+  transform: translateY(-1px);
+}
+
+.button-text {
+  background-color: transparent;
+  color: #6c5ce7;
+  padding: 0;
+}
+
+.button-text:hover:not(:disabled) {
+  color: #5a4bd1;
+  text-decoration: underline;
+}
+
+.button-danger {
+  background-color: #ff4757;
+  color: white;
+}
+
+.button-danger:hover:not(:disabled) {
+  background-color: #ff2e43;
+  transform: translateY(-1px);
+}
+
+/* Button Sizes */
+.button-small {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+.button-medium {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+}
+
+.button-large {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
+
+/* Full Width */
+.button-full-width {
+  width: 100%;
+}
+
+/* Disabled State */
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Focus State */
+.button:focus-visible {
+  outline: 2px solid #6c5ce7;
+  outline-offset: 2px;
+}
+
+/* Active State */
+.button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+/* Loading State */
+.button-loading {
+  position: relative;
+  color: transparent;
+}
+
+.button-loading::after {
+  content: '';
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  border-right-color: transparent;
+  animation: button-loading 0.6s linear infinite;
+}
+
+@keyframes button-loading {
+  to {
+    transform: rotate(360deg);
+  }
+} 

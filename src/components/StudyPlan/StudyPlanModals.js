@@ -169,13 +169,24 @@ export const AddSubjectModal = ({ isOpen, onClose, onAddSubject }) => {
   const [subjectName, setSubjectName] = useState('');
   const [topics, setTopics] = useState([{ name: '', allocatedTime: '', day: 'Monday', priority: 'Medium' }]);
   const [totalAllocatedTime, setTotalAllocatedTime] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
+    // Validate topics
+    const validTopics = topics.filter(
+      t => t.name && t.allocatedTime && !isNaN(parseFloat(t.allocatedTime))
+    );
+    if (validTopics.length === 0) {
+      setError('Please add at least one valid topic (name and hours required).');
+      return;
+    }
+
+    setError('');
     const newSubject = {
       name: subjectName,
-      topics: topics.map(topic => ({
+      topics: validTopics.map(topic => ({
         name: topic.name,
         allocatedTime: parseFloat(topic.allocatedTime),
         day: topic.day || 'Monday',
@@ -285,6 +296,12 @@ export const AddSubjectModal = ({ isOpen, onClose, onAddSubject }) => {
               Add Topic
             </Button>
           </FormGroup>
+          
+          {error && (
+            <div style={{ color: '#e74c3c', marginBottom: '1rem', fontWeight: 500 }}>
+              {error}
+            </div>
+          )}
           
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <CancelButton type="button" onClick={onClose}>

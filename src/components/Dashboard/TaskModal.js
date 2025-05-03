@@ -112,11 +112,33 @@ const Button = styled.button`
   }
 `;
 
+const PrioritySelect = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+`;
+
+const PriorityOption = styled.button`
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: ${props => props.selected ? '#6c5ce7' : 'white'};
+  color: ${props => props.selected ? 'white' : '#333'};
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: ${props => props.selected ? '#5a4ad1' : '#f0f0ff'};
+  }
+`;
+
 const TaskModal = ({ isOpen, onClose, onAddTask }) => {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskType, setTaskType] = useState('📝');
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('');
+  const [priority, setPriority] = useState('medium');
   
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -152,7 +174,9 @@ const TaskModal = ({ isOpen, onClose, onAddTask }) => {
         title: taskTitle,
         dueDate: dueDateText,
         icon: taskType,
-        completed: false
+        completed: false,
+        priority,
+        createdAt: new Date().toISOString()
       });
       
       // Reset form
@@ -160,6 +184,7 @@ const TaskModal = ({ isOpen, onClose, onAddTask }) => {
       setTaskType('📝');
       setDueDate('');
       setDueTime('');
+      setPriority('medium');
       
       onClose();
     }
@@ -202,6 +227,33 @@ const TaskModal = ({ isOpen, onClose, onAddTask }) => {
               <option value="📊">📊 Project</option>
               <option value="📌">📌 Other</option>
             </Select>
+          </FormGroup>
+          
+          <FormGroup>
+            <Label>Priority</Label>
+            <PrioritySelect>
+              <PriorityOption
+                type="button"
+                selected={priority === 'high'}
+                onClick={() => setPriority('high')}
+              >
+                High
+              </PriorityOption>
+              <PriorityOption
+                type="button"
+                selected={priority === 'medium'}
+                onClick={() => setPriority('medium')}
+              >
+                Medium
+              </PriorityOption>
+              <PriorityOption
+                type="button"
+                selected={priority === 'low'}
+                onClick={() => setPriority('low')}
+              >
+                Low
+              </PriorityOption>
+            </PrioritySelect>
           </FormGroup>
           
           <FormGroup>

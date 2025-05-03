@@ -203,27 +203,6 @@ const FeedbackButton = styled.button`
   }
 `;
 
-const LoadingDots = styled.div`
-  display: flex;
-  gap: 0.3rem;
-  align-items: center;
-  
-  span {
-    width: 4px;
-    height: 4px;
-    background: white;
-    border-radius: 50%;
-    animation: bounce 0.5s infinite alternate;
-    
-    &:nth-child(2) { animation-delay: 0.2s; }
-    &:nth-child(3) { animation-delay: 0.4s; }
-  }
-  
-  @keyframes bounce {
-    to { transform: translateY(-4px); }
-  }
-`;
-
 const ErrorMessage = styled.div`
   color: #e74c3c;
   background: #fde8e7;
@@ -341,14 +320,7 @@ const AIQnA = () => {
 
           <Button onClick={handleAskQuestion} loading={loading} disabled={loading}>
             {loading ? (
-              <>
-                Thinking
-                <LoadingDots>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </LoadingDots>
-              </>
+              'Thinking...'
             ) : (
               'Ask Question'
             )}
@@ -356,38 +328,42 @@ const AIQnA = () => {
         </QuestionSection>
 
         <ConversationSection>
-          {conversations.map((conv) => (
-            <QnACard key={conv._id}>
-              <Question>
-                <QuestionHeader>
-                  <Icon type="user">👤</Icon>
-                  <Text>{conv.question}</Text>
-                </QuestionHeader>
-              </Question>
-
-              <Answer>
-                <QuestionHeader>
-                  <Icon type="ai">🤖</Icon>
-                  <Text>{conv.answer}</Text>
-                </QuestionHeader>
-
+          {loading && conversations.length === 0 ? (
+            <Text>Loading conversations...</Text>
+          ) : conversations.length > 0 ? (
+            conversations.map((conv) => (
+              <QnACard key={conv._id}>
+                <Question>
+                  <QuestionHeader>
+                    <Icon type="user">Q</Icon>
+                    <Text>{conv.question}</Text>
+                  </QuestionHeader>
+                </Question>
+                <Answer>
+                  <QuestionHeader>
+                    <Icon type="ai">A</Icon>
+                    <Text>{conv.answer}</Text>
+                  </QuestionHeader>
+                </Answer>
                 <FeedbackSection>
                   <FeedbackButton
-                    active={conv.feedback.helpful > 0}
+                    active={conv.feedback === true}
                     onClick={() => handleFeedback(conv._id, true)}
                   >
-                    👍 Helpful ({conv.feedback.helpful})
+                    Helpful
                   </FeedbackButton>
                   <FeedbackButton
-                    active={conv.feedback.notHelpful > 0}
+                    active={conv.feedback === false}
                     onClick={() => handleFeedback(conv._id, false)}
                   >
-                    👎 Not Helpful ({conv.feedback.notHelpful})
+                    Not Helpful
                   </FeedbackButton>
                 </FeedbackSection>
-              </Answer>
-            </QnACard>
-          ))}
+              </QnACard>
+            ))
+          ) : (
+            <Text>No conversations yet. Ask a question to get started!</Text>
+          )}
         </ConversationSection>
       </Container>
     </>

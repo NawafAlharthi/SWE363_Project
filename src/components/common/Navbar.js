@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import styled from 'styled-components';
+import Button from './Button';
 
 const NavbarContainer = styled.nav`
   display: flex;
@@ -45,26 +46,6 @@ const AuthButtons = styled.div`
   gap: 1rem;
 `;
 
-const LoginButton = styled(Link)`
-  text-decoration: none;
-  color: #6c5ce7;
-  font-weight: 500;
-`;
-
-const SignUpButton = styled(Link)`
-  text-decoration: none;
-  background-color: #6c5ce7;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  
-  &:hover {
-    background-color: #5a4ad1;
-  }
-`;
-
 const ProfileButton = styled.div`
   width: 2rem;
   height: 2rem;
@@ -83,41 +64,64 @@ const ProfileImage = styled.img`
   object-fit: cover;
 `;
 
+const NavbarContent = styled.div`
+  display: flex;
+  align-items: center;
+  width: 100%;
+  justify-content: space-between;
+`;
+
+const CenteredNavLinks = styled.div`
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+`;
+
 const Navbar = ({ isLoggedIn = false }) => {
   const location = useLocation();
+  const hideNavLinks = location.pathname === '/signin' || location.pathname === '/signup';
   
   return (
     <NavbarContainer>
-      <Logo to={isLoggedIn ? "/dashboard" : "/"}>StudyBuddy</Logo>
-      
-      {isLoggedIn ? (
-        <>
-          <NavLinks>
-            <NavLink to="/dashboard" active={location.pathname === "/dashboard"}>Dashboard</NavLink>
-            <NavLink to="/ai-qna" active={location.pathname === "/ai-qna"}>AI-Powered Q&A</NavLink>
-            <NavLink to="/study-plan" active={location.pathname === "/study-plan"}>Study Plan</NavLink>
-            <NavLink to="/quizzes" active={location.pathname === "/quizzes"}>Quizzes</NavLink>
-            <NavLink to="/flashcards" active={location.pathname === "/flashcards"}>Flashcards</NavLink>
-            <NavLink to="/pomodoro" active={location.pathname === "/pomodoro"}>Pomodoro Timer</NavLink>
-          </NavLinks>
-          <ProfileButton>
-            <ProfileImage src="https://media.licdn.com/dms/image/v2/D4D03AQEiOknesJ1i7A/profile-displayphoto-shrink_400_400/B4DZSjWEz7GcAg-/0/1737907261223?e=1750291200&v=beta&t=3oGMZLUrSn3v5fOg6FapKZ04ykHIb649vU7n76b3C_M" alt="Profile" />
-          </ProfileButton>
-        </>
-      ) : (
-        <>
-          <NavLinks>
-            <NavLink to="/" active={location.pathname === "/"}>Home</NavLink>
-            <NavLink to="/features" active={location.pathname === "/features"}>Features</NavLink>
-            <NavLink to="/about" active={location.pathname === "/about"}>About</NavLink>
-            <NavLink to="/contact" active={location.pathname === "/contact"}>Contact</NavLink>
-          </NavLinks>
-          <AuthButtons>
-            <LoginButton to="/login">Login</LoginButton>
-            <SignUpButton to="/signup">Sign Up</SignUpButton>
-          </AuthButtons>
-        </>
-      )}
+      <NavbarContent>
+        <Logo to={isLoggedIn ? "/dashboard" : "/"}>StudyBuddy</Logo>
+        {isLoggedIn ? (
+          <>
+            <CenteredNavLinks>
+              <NavLink to="/dashboard" active={location.pathname === "/dashboard"}>Dashboard</NavLink>
+              <NavLink to="/ai-qna" active={location.pathname === "/ai-qna"}>AI-Powered Q&A</NavLink>
+              <NavLink to="/study-plan" active={location.pathname === "/study-plan"}>Study Plan</NavLink>
+              <NavLink to="/quizzes" active={location.pathname === "/quizzes"}>Quizzes</NavLink>
+              <NavLink to="/flashcards" active={location.pathname === "/flashcards"}>Flashcards</NavLink>
+              <NavLink to="/pomodoro" active={location.pathname === "/pomodoro"}>Pomodoro Timer</NavLink>
+            </CenteredNavLinks>
+            <ProfileButton>
+              <ProfileImage src="https://media.licdn.com/dms/image/v2/D4D03AQEiOknesJ1i7A/profile-displayphoto-shrink_400_400/B4DZSjWEz7GcAg-/0/1737907261223?e=1750291200&v=beta&t=3oGMZLUrSn3v5fOg6FapKZ04ykHIb649vU7n76b3C_M" alt="Profile" />
+            </ProfileButton>
+          </>
+        ) : (
+          <>
+            {!hideNavLinks && (
+              <CenteredNavLinks>
+                <NavLink to="/" active={location.pathname === "/"}>Home</NavLink>
+                <NavLink as="a" href="#features-section" onClick={e => {
+                  if (location.pathname === "/") {
+                    e.preventDefault();
+                    const el = document.getElementById('features-section');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}>Features</NavLink>
+              </CenteredNavLinks>
+            )}
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
+              <Button as={Link} to="/signin" variant="text" size="medium">Login</Button>
+              <Button as={Link} to="/signup" variant="primary" size="medium">Sign Up</Button>
+            </div>
+          </>
+        )}
+      </NavbarContent>
     </NavbarContainer>
   );
 };

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Navbar from '../common/Navbar';
+import AnimatedContainer from '../common/AnimatedContainer';
 import axios from 'axios';
 import { 
   AddSubjectModal, 
@@ -9,6 +10,8 @@ import {
   WeeklyProgressModal 
 } from './StudyPlanModals';
 import StudyTimeDistributionChart from './StudyTimeDistributionChart';
+import * as S from './StudyPlan.styles';
+import api from '../../config/api';
 
 const Container = styled.div`
   font-family: 'Inter', sans-serif;
@@ -452,6 +455,49 @@ const SessionActions = styled.div`
   align-items: center;
 `;
 
+const WeeklyProgressPanel = styled.div`
+  margin-top: 1.5rem;
+  background-color: #f8f9ff;
+  border-radius: 8px;
+  padding: 1.5rem;
+`;
+
+const PanelHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+`;
+
+const PanelTitle = styled.h3`
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+`;
+
+const ProgressTitle = styled.h4`
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: #333;
+`;
+
+const ProgressPercentage = styled.span`
+  font-size: 0.9rem;
+  color: #666;
+`;
+
+const ErrorMessage = styled.div`
+  color: #e74c3c;
+  text-align: center;
+  margin-top: 2rem;
+`;
+
+const pastelColors = [
+  '#A7C7E7', '#FFD6E0', '#C3FBD8', '#FFF5BA', '#FFDAC1', '#B5ead7', '#E2F0CB', '#FFB7B2', '#B5B9FF', '#F3C6E8'
+];
+const getPastelColor = (idx) => pastelColors[idx % pastelColors.length];
+
 const StudyPlan = () => {
   const [subjects, setSubjects] = useState([]);
   const [activeSubject, setActiveSubject] = useState(null);
@@ -467,6 +513,21 @@ const StudyPlan = () => {
   const [currentSubject, setCurrentSubject] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [newSubject, setNewSubject] = useState({
+    name: '',
+    description: '',
+    topics: [{
+      name: '',
+      allocatedTime: 0,
+      day: 'Monday',
+      priority: 'Medium',
+      completed: false
+    }]
+  });
+
+  // Add refs for scrolling
+  const activeSubjectsRef = useRef(null);
+  const studyTimeChartRef = useRef(null);
 
   useEffect(() => {
     fetchSubjects();
@@ -476,30 +537,70 @@ const StudyPlan = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await axios.get('http://localhost:5001/api/studyplans');
+      const response = await api.get('/studyplans/');
       setSubjects(response.data.subjects || []);
     } catch (err) {
-      setError('Failed to load study plan');
+      setError('Failed to load subjects');
       setSubjects([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleAddSubject = async (subject) => {
-    setError(null);
+  const handleAddSubject = async (e) => {
+    e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5001/api/studyplans/add', { subject });
-      setSubjects(prev => [response.data, ...prev]);
+      if (!newSubject.name.trim()) {
+        setError('Subject name is required');
+        return;
+      }
+
+      // Filter out topics with empty names
+      const validTopics = newSubject.topics.filter(
+        t => t.name && t.name.trim().length > 0
+      );
+
+      if (validTopics.length === 0) {
+        setError('Please add at least one topic with a name.');
+        return;
+      }
+
+      const subjectData = {
+        name: newSubject.name.trim(),
+        topics: validTopics.map(topic => ({
+          name: topic.name.trim(),
+          allocatedTime: Number(topic.allocatedTime) || 0,
+          day: topic.day || 'Monday',
+          priority: topic.priority || 'Medium',
+          completed: false
+        })),
+        totalAllocatedTime: validTopics.reduce((sum, t) => sum + (Number(t.allocatedTime) || 0), 0)
+      };
+
+      const response = await api.post('/studyplans/add', { subject: subjectData });
+      setSubjects(prev => [...prev, response.data]);
+      setIsAddSubjectModalOpen(false);
+      setNewSubject({
+        name: '',
+        description: '',
+        topics: [{
+          name: '',
+          allocatedTime: 0,
+          day: 'Monday',
+          priority: 'Medium',
+          completed: false
+        }]
+      });
     } catch (err) {
-      setError('Failed to add subject');
+      console.error('Add subject error:', err);
+      setError('Failed to add subject: ' + (err.response?.data?.error || err.message));
     }
   };
 
   const handleEditSubject = async (updatedSubject) => {
     setError(null);
     try {
-      const response = await axios.put(`http://localhost:5001/api/studyplans/${updatedSubject._id}`, { subject: updatedSubject });
+      const response = await api.put(`/studyplans/${updatedSubject._id}`, { subject: updatedSubject });
       setSubjects(prev => prev.map(s => s._id === updatedSubject._id ? response.data : s));
     } catch (err) {
       setError('Failed to update subject');
@@ -507,12 +608,60 @@ const StudyPlan = () => {
   };
 
   const handleDeleteSubject = async (subjectId) => {
+    if (window.confirm('Are you sure you want to delete this subject?')) {
+      try {
+        await api.delete(`/studyplans/${subjectId}`);
+        setSubjects(prev => prev.filter(subject => subject._id !== subjectId));
+      } catch (err) {
+        setError('Failed to delete subject');
+      }
+    }
+  };
+
+  const handleAddTopic = async (subjectId, topic) => {
+    try {
+      const response = await api.post(`/studyplans/${subjectId}/topics`, { topic });
+      setSubjects(prev => prev.map(subject => 
+        subject._id === subjectId ? response.data : subject
+      ));
+    } catch (err) {
+      setError('Failed to add topic');
+    }
+  };
+
+  const handleDeleteTopic = async (subjectId, topicIndex) => {
+    try {
+      const response = await api.delete(`/studyplans/${subjectId}/topics/${topicIndex}`);
+      setSubjects(prev => prev.map(subject => 
+        subject._id === subjectId ? response.data : subject
+      ));
+    } catch (err) {
+      setError('Failed to delete topic');
+    }
+  };
+
+  const handleUpdateProgress = async (subjectId, topicIndex, progress) => {
     setError(null);
     try {
-      await axios.delete(`http://localhost:5001/api/studyplans/${subjectId}`);
-      setSubjects(prev => prev.filter(s => s._id !== subjectId));
+      // Find the topic's _id
+      const subject = subjects.find(s => s._id === subjectId);
+      if (!subject) throw new Error('Subject not found');
+      const topic = subject.topics[topicIndex];
+      if (!topic) throw new Error('Topic not found');
+      const topicId = topic._id;
+      const response = await api.patch(`/studyplans/${subjectId}/topics/${topicId}/toggle`);
+      setSubjects(prev => prev.map(subject =>
+        subject._id === subjectId
+          ? {
+              ...subject,
+              topics: subject.topics.map(t =>
+                t._id === topicId ? { ...t, completed: response.data.completed } : t
+              )
+            }
+          : subject
+      ));
     } catch (err) {
-      setError('Failed to delete subject');
+      setError('Failed to update progress');
     }
   };
 
@@ -576,7 +725,7 @@ const StudyPlan = () => {
   const handleToggleSession = async (subjectId, topicId) => {
     setError(null);
     try {
-      const response = await axios.patch(`http://localhost:5001/api/studyplans/${subjectId}/topics/${topicId}/toggle`);
+      const response = await api.patch(`/studyplans/${subjectId}/topics/${topicId}/toggle`);
       // Update local state
       setSubjects(prev => prev.map(subject =>
         subject._id === subjectId
@@ -649,200 +798,510 @@ const StudyPlan = () => {
       <Navbar isLoggedIn={true} />
       <Container>
         {isLoading ? (
-          <div>Loading...</div>
+          null
         ) : error ? (
-          <div>Error: {error}</div>
+          <AnimatedContainer>
+            <ErrorMessage>{error}</ErrorMessage>
+          </AnimatedContainer>
         ) : (
           <>
-            <Breadcrumbs>
-              <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
-              <BreadcrumbSeparator>›</BreadcrumbSeparator>
-              <BreadcrumbLink href="/study-plan">Study Plan</BreadcrumbLink>
-            </Breadcrumbs>
-            
-            <PageTitle>Your Study Plan</PageTitle>
-            
-            <FeaturesGrid>
-              <FeatureCard>
-                <FeatureIcon>📋</FeatureIcon>
-                <FeatureTitle>Subject Selection</FeatureTitle>
-                <FeatureDescription>Choose subjects to include in your study plan</FeatureDescription>
-                <Button onClick={() => setIsAddSubjectModalOpen(true)}>Add Subject</Button>
-              </FeatureCard>
-              
-              <FeatureCard>
-                <FeatureIcon>📈</FeatureIcon>
-                <FeatureTitle>Weekly Progress</FeatureTitle>
-                <FeatureDescription>Track your study progress and completion</FeatureDescription>
-                <Button onClick={() => setExpandedProgress(!expandedProgress)}>
-                  {expandedProgress ? 'Hide Details' : 'View Details'}
-                </Button>
-              </FeatureCard>
-              
-              <FeatureCard>
-                <FeatureIcon>📊</FeatureIcon>
-                <FeatureTitle>Study Time Distribution</FeatureTitle>
-                <FeatureDescription>View how your study time is distributed across subjects</FeatureDescription>
-                <div style={{ width: '100%', height: '220px', marginTop: '10px' }}>
-                  <StudyTimeDistributionChart subjects={subjects} />
-                </div>
-              </FeatureCard>
-            </FeaturesGrid>
-            
-            {/* Expandable Weekly Progress Panel */}
-            <ProgressPanel expanded={expandedProgress}>
-              <ProgressBar>
-                <ProgressFill percentage={progressData.completionPercentage} />
-              </ProgressBar>
-              <ProgressGrid>
-                <ProgressCard>
-                  <ProgressCardTitle>Daily Breakdown</ProgressCardTitle>
-                  <ProgressList>
-                    {progressData.dailyBreakdown.map((day, idx) => (
-                      <ProgressListItem key={idx}>
-                        <ProgressItemIcon completed={day.completed === day.total}>
-                          {day.completed === day.total ? '✅' : '⏳'}
-                        </ProgressItemIcon>
-                        <ProgressItemText>
-                          {day.day}: {day.completed}/{day.total} sessions completed
-                        </ProgressItemText>
-                      </ProgressListItem>
-                    ))}
-                  </ProgressList>
-                </ProgressCard>
-                <ProgressCard>
-                  <ProgressCardTitle>Subject Summary</ProgressCardTitle>
-                  <ProgressList>
-                    {progressData.subjectSummary.map((subject, idx) => (
-                      <ProgressListItem key={idx}>
-                        <ProgressItemIcon completed={subject.completed === subject.total}>
-                          {subject.completed === subject.total ? '✅' : '⏳'}
-                        </ProgressItemIcon>
-                        <ProgressItemText>
-                          {subject.name}: {subject.completed}/{subject.total} sessions
-                        </ProgressItemText>
-                      </ProgressListItem>
-                    ))}
-                  </ProgressList>
-                </ProgressCard>
-                <ProgressCard>
-                  <ProgressCardTitle>Missed/Pending Sessions</ProgressCardTitle>
-                  <ProgressList>
-                    {progressData.missedSessions.length === 0 && (
-                      <ProgressListItem>
-                        <ProgressItemText>🎉 No missed sessions!</ProgressItemText>
-                      </ProgressListItem>
-                    )}
-                    {progressData.missedSessions.map((session, idx) => (
-                      <ProgressListItem key={idx}>
-                        <ProgressItemIcon completed={false}>⏳</ProgressItemIcon>
-                        <ProgressItemText>
-                          {session.day}'s {session.subject} - {session.topic} ({session.duration}h, {session.priority})
-                        </ProgressItemText>
-                      </ProgressListItem>
-                    ))}
-                  </ProgressList>
-                </ProgressCard>
-              </ProgressGrid>
-            </ProgressPanel>
-            
-            <SectionTitle>Active Subjects</SectionTitle>
-            
-            <SubjectTabs>
-              <SubjectTab 
-                active={activeTab === 'all'} 
-                onClick={() => setActiveTab('all')}
-              >
-                All Subjects
-              </SubjectTab>
-              {subjects.map(subject => (
-                <SubjectTab 
-                  key={subject._id}
-                  active={activeTab === subject.name.toLowerCase()} 
-                  onClick={() => setActiveTab(subject.name.toLowerCase())}
+            <AnimatedContainer delay="0.05s">
+              <Breadcrumbs>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+                <BreadcrumbSeparator>›</BreadcrumbSeparator>
+                <BreadcrumbLink href="/study-plan">Study Plan</BreadcrumbLink>
+              </Breadcrumbs>
+            </AnimatedContainer>
+            <AnimatedContainer delay="0.1s">
+              <PageTitle>Your Study Plan</PageTitle>
+            </AnimatedContainer>
+            <AnimatedContainer delay="0.15s">
+              <FeaturesGrid>
+                <FeatureCard
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    if (activeSubjectsRef.current) {
+                      activeSubjectsRef.current.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                 >
-                  {subject.name}
-                </SubjectTab>
-              ))}
-            </SubjectTabs>
+                  <FeatureIcon>📋</FeatureIcon>
+                  <FeatureTitle>Subject Selection</FeatureTitle>
+                  <FeatureDescription>Choose subjects to include in your study plan</FeatureDescription>
+                  <Button onClick={(e) => {
+                    e.stopPropagation();
+                    setIsAddSubjectModalOpen(true);
+                  }}>Add Subject</Button>
+                </FeatureCard>
+                <FeatureCard
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setIsWeeklyProgressModalOpen(true)}
+                >
+                  <FeatureIcon>📈</FeatureIcon>
+                  <FeatureTitle>Weekly Progress</FeatureTitle>
+                  <FeatureDescription>Track your study progress and completion</FeatureDescription>
+                  <Button onClick={(e) => {
+                    e.stopPropagation();
+                    setIsWeeklyProgressModalOpen(true);
+                  }}>
+                    View Details
+                  </Button>
+                </FeatureCard>
+                <FeatureCard
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => {
+                    if (studyTimeChartRef.current) {
+                      studyTimeChartRef.current.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <FeatureIcon>📊</FeatureIcon>
+                  <FeatureTitle>Study Time Distribution</FeatureTitle>
+                  <FeatureDescription>View how your study time is distributed across subjects</FeatureDescription>
+                  <div ref={studyTimeChartRef} style={{ width: '100%', height: '220px', marginTop: '10px' }}>
+                    <StudyTimeDistributionChart subjects={subjects} />
+                  </div>
+                </FeatureCard>
+              </FeaturesGrid>
+            </AnimatedContainer>
+            <ProgressPanel expanded={expandedProgress} style={{ display: 'none' }} />
+            <AnimatedContainer delay="0.2s">
+              <SectionTitle ref={activeSubjectsRef}>Active Subjects</SectionTitle>
+            </AnimatedContainer>
+            <AnimatedContainer delay="0.25s">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem', flexWrap: 'wrap' }}>
+                <button
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                    background: activeTab === 'all' ? '#e6e6ff' : '#f8f9ff',
+                    border: activeTab === 'all' ? '2px solid #6c5ce7' : '1px solid #ececff',
+                    borderRadius: '999px',
+                    boxShadow: activeTab === 'all' ? '0 2px 8px rgba(80,80,180,0.10)' : 'none',
+                    color: '#333',
+                    fontWeight: 600,
+                    padding: '0.5rem 1.25rem',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    fontSize: '1rem',
+                    transition: 'all 0.2s',
+                  }}
+                  onClick={() => setActiveTab('all')}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>📚</span> All
+                </button>
+                {subjects.map((subject, idx) => (
+                  <button
+                    key={subject._id}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      background: activeTab === subject.name.toLowerCase() ? '#e6e6ff' : '#f8f9ff',
+                      border: activeTab === subject.name.toLowerCase() ? '2px solid #6c5ce7' : '1px solid #ececff',
+                      borderRadius: '999px',
+                      boxShadow: activeTab === subject.name.toLowerCase() ? '0 2px 8px rgba(80,80,180,0.10)' : 'none',
+                      color: '#333',
+                      fontWeight: 600,
+                      padding: '0.5rem 1.25rem',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      fontSize: '1rem',
+                      transition: 'all 0.2s',
+                    }}
+                    onClick={() => setActiveTab(subject.name.toLowerCase())}
+                  >
+                    <span style={{ fontSize: '1.2rem' }}>{getSubjectIcon(subject.name)}</span>
+                    {subject.name}
+                    <span
+                      title="Delete Subject"
+                      style={{ marginLeft: 8, color: '#dc3545', fontSize: '1.1rem', cursor: 'pointer' }}
+                      onClick={e => { e.stopPropagation(); handleDeleteSubject(subject._id); }}
+                    >🗑️</span>
+                  </button>
+                ))}
+                <button
+                  style={{
+                    background: '#6c5ce7', color: 'white', border: 'none', borderRadius: '999px',
+                    padding: '0.5rem 1.25rem', fontWeight: 600, fontSize: '1rem', cursor: 'pointer',
+                    boxShadow: '0 2px 8px rgba(80,80,180,0.10)',
+                    display: 'flex', alignItems: 'center', gap: '0.5rem',
+                  }}
+                  onClick={() => setIsAddSubjectModalOpen(true)}
+                >
+                  <span style={{ fontSize: '1.2rem' }}>＋</span> Add Subject
+                </button>
+              </div>
+            </AnimatedContainer>
             
-            {filteredSubjects.map(subject => {
-              return (
-                <div key={subject._id}>
-                  <SubjectCard inactive={!subject.active}>
-                    <SubjectIcon>{getSubjectIcon(subject.name)}</SubjectIcon>
-                    <SubjectContent>
-                      <SubjectTitle>{subject.name}</SubjectTitle>
-                      <SubjectSessions>
-                        {subject.topics.length} topic{subject.topics.length !== 1 ? 's' : ''} scheduled
-                      </SubjectSessions>
-                    </SubjectContent>
-                    <SubjectActions>
-                      <ActionButton 
-                        onClick={() => {
-                          setCurrentSubject(subject);
-                          setIsEditSubjectModalOpen(true);
-                        }}
+            {filteredSubjects.map((subject, idx) => (
+              <AnimatedContainer delay={`${0.3 + idx * 0.05}s`} key={subject._id}>
+                <div
+                  style={{
+                    background: '#fff',
+                    borderRadius: 16,
+                    boxShadow: '0 2px 12px rgba(80,80,180,0.08)',
+                    borderLeft: `8px solid ${getPastelColor(idx)}`,
+                    marginBottom: 32,
+                    padding: '2rem 2rem 1.5rem 2rem',
+                    position: 'relative',
+                    transition: 'box-shadow 0.2s',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 12, background: getPastelColor(idx),
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, color: '#6c5ce7', marginRight: 18
+                    }}>{getSubjectIcon(subject.name)}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 20, color: '#333' }}>{subject.name}</div>
+                      {subject.description && <div style={{ color: '#888', fontSize: 15, marginTop: 2 }}>{subject.description}</div>}
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <span
                         title="Edit Subject"
-                      >
-                        ✏️
-                      </ActionButton>
-                      <ActionButton 
-                        onClick={() => {
-                          setCurrentSubject(subject);
-                          setIsDeleteSubjectModalOpen(true);
-                        }}
+                        style={{ color: '#6c5ce7', fontSize: 22, cursor: 'pointer', marginRight: 8 }}
+                        onClick={() => { setCurrentSubject(subject); setIsEditSubjectModalOpen(true); }}
+                      >✏️</span>
+                      <span
                         title="Delete Subject"
+                        style={{ color: '#dc3545', fontSize: 22, cursor: 'pointer' }}
+                        onClick={() => { setCurrentSubject(subject); setIsDeleteSubjectModalOpen(true); }}
+                      >🗑️</span>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 16 }}>
+                    {subject.topics.length === 0 && (
+                      <div style={{ color: '#aaa', fontStyle: 'italic', marginBottom: 8 }}>No topics yet. Add one below!</div>
+                    )}
+                    {subject.topics.map((topic, tIdx) => (
+                      <div
+                        key={tIdx}
+                        style={{
+                          display: 'flex', alignItems: 'center', background: topic.completed ? '#f3f8f3' : '#f8f9ff',
+                          borderRadius: 10, padding: '0.75rem 1rem', marginBottom: 8,
+                          boxShadow: topic.completed ? '0 1px 4px #b5ead7' : 'none',
+                          border: topic.completed ? '1px solid #b5ead7' : '1px solid #ececff',
+                          transition: 'background 0.2s, box-shadow 0.2s',
+                          position: 'relative',
+                        }}
                       >
-                        🗑️
-                      </ActionButton>
-                    </SubjectActions>
-                  </SubjectCard>
+                        <input
+                          type="checkbox"
+                          checked={topic.completed}
+                          onChange={e => handleUpdateProgress(subject._id, tIdx, e.target.checked)}
+                          style={{ width: 22, height: 22, accentColor: '#6c5ce7', marginRight: 16, cursor: 'pointer' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <span style={{
+                            textDecoration: topic.completed ? 'line-through' : 'none',
+                            color: topic.completed ? '#aaa' : '#333', fontWeight: 600, fontSize: 16
+                          }}>{topic.name}</span>
+                          <span style={{
+                            marginLeft: 12, fontSize: 13, padding: '2px 10px', borderRadius: 12,
+                            background: topic.completed ? '#b5ead7' : '#ffeaa7', color: topic.completed ? '#27ae60' : '#f39c12',
+                            fontWeight: 600
+                          }}>{topic.completed ? 'Completed' : 'In Progress'}</span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteTopic(subject._id, tIdx)}
+                          style={{
+                            background: '#ffeded', color: '#dc3545', border: 'none', borderRadius: 8,
+                            padding: '0.3rem 0.8rem', fontWeight: 600, fontSize: 14, cursor: 'pointer', marginLeft: 10
+                          }}
+                          title="Delete Topic"
+                        >Delete</button>
+                      </div>
+                    ))}
+                  </div>
+                  <form
+                    onSubmit={e => {
+                      e.preventDefault();
+                      const topicInput = e.target.topic;
+                      if (topicInput.value.trim()) {
+                        handleAddTopic(subject._id, topicInput.value.trim());
+                        topicInput.value = '';
+                      }
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}
+                  >
+                    <input
+                      name="topic"
+                      placeholder="Add new topic"
+                      required
+                      style={{
+                        flex: 1, borderRadius: 999, border: '1px solid #ececff', padding: '0.6rem 1.2rem', fontSize: 15,
+                        outline: 'none', background: '#f8f9ff', marginRight: 8
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        background: '#6c5ce7', color: 'white', border: 'none', borderRadius: 999,
+                        padding: '0.6rem 1.4rem', fontWeight: 600, fontSize: 15, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6
+                      }}
+                    >
+                      <span style={{ fontSize: 18 }}>＋</span> Add Topic
+                    </button>
+                  </form>
                 </div>
-              );
-            })}
+              </AnimatedContainer>
+            ))}
+            <AnimatedContainer delay={`${0.3 + filteredSubjects.length * 0.05 + 0.05}s`}>
+              <SectionTitle>Weekly Study Schedule</SectionTitle>
+            </AnimatedContainer>
+            {Object.keys(scheduleByDay).length === 0 ? (
+              <AnimatedContainer delay={`${0.3 + filteredSubjects.length * 0.05 + 0.1}s`}>
+                <S.EmptySchedule>No sessions scheduled. Add subjects and topics to see your schedule.</S.EmptySchedule>
+              </AnimatedContainer>
+            ) : (
+              <AnimatedContainer delay={`${0.3 + filteredSubjects.length * 0.05 + 0.1}s`}>
+                {Object.entries(scheduleByDay).map(([day, sessions], idx) => (
+                  <AnimatedContainer delay={`${0.4 + idx * 0.05}s`} key={day}>
+                    <S.DaySection>
+                      <S.DaySectionHeader onClick={() => toggleDayExpanded(day)}>
+                        <S.DaySectionTitle>
+                          {isDayExpanded(day) ? '▼' : '►'} {day} ({sessions.length} session{sessions.length !== 1 ? 's' : ''})
+                        </S.DaySectionTitle>
+                      </S.DaySectionHeader>
+                      {isDayExpanded(day) && (
+                        <S.DaySectionContent>
+                          {sessions.map(session => (
+                            <S.SessionRow key={session._id}>
+                              <S.SessionCheckbox
+                                type="checkbox"
+                                checked={session.completed}
+                                onChange={() => handleToggleSession(session.subjectId, session._id)}
+                              />
+                              <S.SessionSubject>
+                                <span style={{ fontWeight: 700, color: '#6c5ce7', marginRight: 8 }}>{session.subjectName}</span>
+                                <span style={{ color: '#888', marginRight: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span role="img" aria-label="time">⏰</span> {session.allocatedTime}h
+                                </span>
+                                <span style={{ color: '#888', marginRight: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                  <span role="img" aria-label="topic">📚</span> {session.name}
+                                </span>
+                                <S.PriorityIndicator priority={session.priority}>
+                                  {session.priority === 'High' ? '🔴' : session.priority === 'Medium' ? '🟡' : '🟢'} {session.priority}
+                                </S.PriorityIndicator>
+                              </S.SessionSubject>
+                            </S.SessionRow>
+                          ))}
+                        </S.DaySectionContent>
+                      )}
+                    </S.DaySection>
+                  </AnimatedContainer>
+                ))}
+              </AnimatedContainer>
+            )}
           </>
         )}
-        <SectionTitle>Weekly Study Schedule</SectionTitle>
-        {Object.keys(scheduleByDay).length === 0 && (
-          <EmptySchedule>No sessions scheduled. Add subjects and topics to see your schedule.</EmptySchedule>
-        )}
-        {Object.entries(scheduleByDay).map(([day, sessions]) => (
-          <DaySection key={day}>
-            <DaySectionHeader onClick={() => toggleDayExpanded(day)}>
-              <DaySectionTitle>
-                {isDayExpanded(day) ? '▼' : '►'} {day} ({sessions.length} session{sessions.length !== 1 ? 's' : ''})
-              </DaySectionTitle>
-            </DaySectionHeader>
-            {isDayExpanded(day) && (
-              <DaySectionContent>
-                {sessions.map(session => (
-                  <SessionRow key={session._id}>
-                    <SessionCheckbox
-                      type="checkbox"
-                      checked={session.completed}
-                      onChange={() => handleToggleSession(session.subjectId, session._id)}
-                    />
-                    <SessionSubject>
-                      {session.subjectName} | {session.allocatedTime}h | {session.name} |{' '}
-                      <PriorityIndicator priority={session.priority}>
-                        {session.priority === 'High' ? '🔴' : session.priority === 'Medium' ? '🟡' : '🟢'} {session.priority}
-                      </PriorityIndicator>
-                    </SessionSubject>
-                  </SessionRow>
-                ))}
-              </DaySectionContent>
-            )}
-          </DaySection>
-        ))}
       </Container>
       
       {/* Modals */}
-      <AddSubjectModal 
-        isOpen={isAddSubjectModalOpen} 
-        onClose={() => setIsAddSubjectModalOpen(false)} 
-        onAddSubject={handleAddSubject}
-      />
+      {isAddSubjectModalOpen && (
+        <S.Modal>
+          <S.ModalContent>
+            <h2>Add New Subject</h2>
+            <form onSubmit={handleAddSubject}>
+              <S.FormGroup>
+                <label>Subject Name</label>
+                <S.Input
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  required
+                />
+              </S.FormGroup>
+
+              <S.FormGroup>
+                <label>Description</label>
+                <S.TextArea
+                  value={newSubject.description}
+                  onChange={(e) => setNewSubject({ ...newSubject, description: e.target.value })}
+                />
+              </S.FormGroup>
+
+              <S.FormGroup>
+                <label>Topics</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, fontWeight: 500, color: '#555', fontSize: 14 }}>
+                  <span style={{ flex: 2 }}>Topic Name</span>
+                  <span style={{ flex: 1 }}>Allocated Time (min)</span>
+                  <span style={{ flex: 1 }}>Day</span>
+                  <span style={{ flex: 1 }}>Priority</span>
+                  <span style={{ width: 32 }}></span>
+                </div>
+                {newSubject.topics.map((topic, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      marginBottom: 14,
+                      background: '#f8f9ff',
+                      borderRadius: 10,
+                      padding: '14px 12px',
+                      boxShadow: '0 1px 4px rgba(80,80,180,0.06)',
+                      position: 'relative',
+                      transition: 'box-shadow 0.2s',
+                    }}
+                  >
+                    <S.Input
+                      placeholder="e.g. Algebra, Reading, etc."
+                      value={topic.name}
+                      onChange={e => {
+                        const updatedTopics = [...newSubject.topics];
+                        updatedTopics[idx].name = e.target.value;
+                        setNewSubject({ ...newSubject, topics: updatedTopics });
+                      }}
+                      required
+                      style={{ flex: 2 }}
+                    />
+                    <S.Input
+                      type="number"
+                      min="0"
+                      placeholder="Minutes"
+                      value={topic.allocatedTime}
+                      onChange={e => {
+                        const updatedTopics = [...newSubject.topics];
+                        updatedTopics[idx].allocatedTime = e.target.value;
+                        setNewSubject({ ...newSubject, topics: updatedTopics });
+                      }}
+                      required
+                      style={{ flex: 1 }}
+                    />
+                    <select
+                      value={topic.day}
+                      onChange={e => {
+                        const updatedTopics = [...newSubject.topics];
+                        updatedTopics[idx].day = e.target.value;
+                        setNewSubject({ ...newSubject, topics: updatedTopics });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 1rem',
+                        borderRadius: 8,
+                        border: '1.5px solid #d1d1f7',
+                        background: '#f4f6ff',
+                        fontSize: 15,
+                        color: '#333',
+                        outline: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        transition: 'border 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 1px 3px rgba(80,80,180,0.04)',
+                      }}
+                      onFocus={e => e.target.style.border = '1.5px solid #6c5ce7'}
+                      onBlur={e => e.target.style.border = '1.5px solid #d1d1f7'}
+                    >
+                      <option value="Monday">Monday</option>
+                      <option value="Tuesday">Tuesday</option>
+                      <option value="Wednesday">Wednesday</option>
+                      <option value="Thursday">Thursday</option>
+                      <option value="Friday">Friday</option>
+                      <option value="Saturday">Saturday</option>
+                      <option value="Sunday">Sunday</option>
+                    </select>
+                    <select
+                      value={topic.priority}
+                      onChange={e => {
+                        const updatedTopics = [...newSubject.topics];
+                        updatedTopics[idx].priority = e.target.value;
+                        setNewSubject({ ...newSubject, topics: updatedTopics });
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '0.5rem 1rem',
+                        borderRadius: 8,
+                        border: '1.5px solid #d1d1f7',
+                        background: '#f4f6ff',
+                        fontSize: 15,
+                        color: '#333',
+                        outline: 'none',
+                        appearance: 'none',
+                        WebkitAppearance: 'none',
+                        MozAppearance: 'none',
+                        transition: 'border 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 1px 3px rgba(80,80,180,0.04)',
+                      }}
+                      onFocus={e => e.target.style.border = '1.5px solid #6c5ce7'}
+                      onBlur={e => e.target.style.border = '1.5px solid #d1d1f7'}
+                    >
+                      <option value="Low">Low</option>
+                      <option value="Medium">Medium</option>
+                      <option value="High">High</option>
+                    </select>
+                    {newSubject.topics.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedTopics = newSubject.topics.filter((_, i) => i !== idx);
+                          setNewSubject({ ...newSubject, topics: updatedTopics });
+                        }}
+                        style={{
+                          background: 'none',
+                          color: '#dc3545',
+                          border: 'none',
+                          borderRadius: '50%',
+                          width: 32,
+                          height: 32,
+                          fontWeight: 700,
+                          fontSize: 20,
+                          cursor: 'pointer',
+                          marginLeft: 12,
+                          transition: 'background 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                        title="Remove Topic"
+                        onMouseOver={e => e.currentTarget.style.background = '#ffeaea'}
+                        onMouseOut={e => e.currentTarget.style.background = 'none'}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => setNewSubject({
+                    ...newSubject,
+                    topics: [
+                      ...newSubject.topics,
+                      { name: '', allocatedTime: 0, day: 'Monday', priority: 'Medium', completed: false }
+                    ]
+                  })}
+                  style={{
+                    background: '#6c5ce7',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '0.7rem 0',
+                    fontWeight: 600,
+                    fontSize: 16,
+                    cursor: 'pointer',
+                    marginTop: 8,
+                    width: '100%',
+                    boxShadow: '0 1px 4px rgba(80,80,180,0.06)',
+                    transition: 'background 0.2s',
+                  }}
+                  onMouseOver={e => e.currentTarget.style.background = '#5a4ad1'}
+                  onMouseOut={e => e.currentTarget.style.background = '#6c5ce7'}
+                >
+                  + Add Topic
+                </button>
+              </S.FormGroup>
+
+              <S.ButtonGroup>
+                <S.Button type="submit">Add Subject</S.Button>
+                <S.Button type="button" onClick={() => setIsAddSubjectModalOpen(false)}>
+                  Cancel
+                </S.Button>
+              </S.ButtonGroup>
+            </form>
+          </S.ModalContent>
+        </S.Modal>
+      )}
       
       <EditSubjectModal 
         isOpen={isEditSubjectModalOpen} 
