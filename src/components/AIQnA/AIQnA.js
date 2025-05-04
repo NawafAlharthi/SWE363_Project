@@ -233,7 +233,7 @@ const AIQnA = () => {
 
   const fetchQnAs = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/aiqna');
+      const response = await axios.get('https://swe363-project.onrender.com/api/aiqna');
       setConversations(response.data);
     } catch (err) {
       setError('Failed to load previous conversations');
@@ -251,7 +251,7 @@ const AIQnA = () => {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:5001/api/aiqna/add', {
+      const response = await axios.post('https://swe363-project.onrender.com/api/aiqna/add', {
         question: question.trim(),
         subject
       });
@@ -270,7 +270,7 @@ const AIQnA = () => {
   const handleFeedback = async (id, isHelpful) => {
     if (feedbackGiven[id]) return;
     try {
-      const response = await axios.post(`http://localhost:5001/api/aiqna/${id}/feedback`, {
+      const response = await axios.post(`https://swe363-project.onrender.com/api/aiqna/${id}/feedback`, {
         isHelpful
       });
       setConversations(prev =>
@@ -287,7 +287,7 @@ const AIQnA = () => {
 
   const handleDeleteQnA = async (id) => {
     try {
-      await axios.delete(`http://localhost:5001/api/aiqna/${id}`);
+      await axios.delete(`https://swe363-project.onrender.com/api/aiqna/${id}`);
       setConversations(prev => {
         const updated = prev.filter(conv => conv._id !== id);
         if (updated.length === 0) {
