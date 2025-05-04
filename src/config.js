@@ -1,5 +1,5 @@
 const config = {
-  API_URL: 'http://localhost:5001/api',
+  API_URL: 'https://swe363-project.onrender.com/api',
   AUTH_ENDPOINTS: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
